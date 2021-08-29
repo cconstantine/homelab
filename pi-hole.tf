@@ -130,9 +130,9 @@ resource "kubernetes_service" "pihole_dns" {
     }
     type = "LoadBalancer"
     port {
-      name        = "dns"
-      port        = 53
-      protocol    = "UDP"
+      name     = "dns"
+      port     = 53
+      protocol = "UDP"
     }
   }
 }
