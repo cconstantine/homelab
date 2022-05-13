@@ -1,0 +1,7 @@
+groups:
+  - name: apply_name
+    rules:
+    - record: name:node_nat_traffic
+      expr: label_replace(node_nat_traffic, "ip", "$1", "src", "(.*)") / on (ip) group_left(name) uci_dhcp_host
+    - record: name:node_nat_traffic:rate:1m
+      expr: label_replace(sum(rate(node_nat_traffic[1m])) by (direction, src), "ip", "$1", "src", "(.*)") / on (ip) group_left(name) uci_dhcp_host

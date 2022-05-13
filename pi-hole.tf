@@ -54,6 +54,7 @@ resource "kubernetes_stateful_set" "pi_hole" {
     name      = "pihole"
     namespace = kubernetes_namespace.pi_hole.metadata.0.name
   }
+  wait_for_rollout = false
   spec {
     replicas = 1
     selector {

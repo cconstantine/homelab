@@ -1,13 +1,7 @@
-resource "kubernetes_namespace" "prometheus" {
-  metadata {
-    name = "prometheus"
-  }
-}
-
 resource "kubernetes_service" "prometheus" {
   metadata {
     name      = "prometheus"
-    namespace = kubernetes_namespace.prometheus.metadata.0.name
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
     annotations = {
       prometheus_io_scrape = true
     }
@@ -46,7 +40,7 @@ resource "kubernetes_cluster_role" "prometheus" {
 resource "kubernetes_service_account" "prometheus" {
   metadata {
     name      = "prometheus-service-account"
-    namespace = kubernetes_namespace.prometheus.metadata.0.name
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
   }
 }
 
@@ -62,29 +56,27 @@ resource "kubernetes_cluster_role_binding" "prometheus" {
   subject {
     kind      = "ServiceAccount"
     name      = kubernetes_service_account.prometheus.metadata.0.name
-    namespace = kubernetes_namespace.prometheus.metadata.0.name
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
   }
 }
 
 resource "kubernetes_config_map" "prometheus_yml" {
   metadata {
-    name      = "prometheus-yml-${sha1(file("${path.module}/prometheus.yml"))}"
-    namespace = kubernetes_namespace.prometheus.metadata.0.name
+    name      = "prometheus-yml-${sha1(file("${path.module}/config/prometheus.yml"))}-${sha1(file("${path.module}/config/rules.yml"))}"
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
   }
 
   data = {
-    "prometheus.yml" = "${file("${path.module}/prometheus.yml")}"
+    "prometheus.yml" = "${file("${path.module}/config/prometheus.yml")}"
+    "rules.yml" = "${file("${path.module}/config/rules.yml")}"
   }
 }
 
 resource "kubernetes_stateful_set" "prometheus" {
-  timeouts {
-    create = "2m"
-    delete = "2m"
-  }
+  wait_for_rollout = false
   metadata {
     name      = "prometheus"
-    namespace = kubernetes_namespace.prometheus.metadata.0.name
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
   }
   spec {
     replicas = 1
@@ -136,6 +128,17 @@ resource "kubernetes_stateful_set" "prometheus" {
             mount_path = "/etc/prometheus"
           }
 
+          resources {
+            requests = {
+              cpu = "1"
+              memory = "4Gi"
+            }
+            limits = {
+                cpu = "12"
+                memory = "4Gi"
+            }
+          }
+
         }
       }
     }
@@ -160,7 +163,7 @@ resource "kubernetes_stateful_set" "prometheus" {
 resource "kubernetes_ingress" "prometheus_ingress" {
   metadata {
     name      = "prometheus-ingress"
-    namespace = kubernetes_namespace.prometheus.metadata.0.name
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
   }
 
   spec {
@@ -175,6 +178,5 @@ resource "kubernetes_ingress" "prometheus_ingress" {
         }
       }
     }
-
   }
 }

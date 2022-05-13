@@ -1,0 +1,3 @@
+module "monitoring" {
+  source = "./monitoring"
+}
