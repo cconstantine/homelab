@@ -4,8 +4,20 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = "2.4.1"
     }
+
+    helm = {
+      source  = "hashicorp/helm"
+      version = "~> 2.0.1"
+    }
   }
 }
+provider "helm" {
+  kubernetes {
+    config_path    = "~/.kube/config"
+    config_context = "default"
+  }
+}
+
 provider "kubernetes" {
   config_path    = "~/.kube/config"
   config_context = "default"
