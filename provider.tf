@@ -16,5 +16,6 @@ data "terraform_remote_state" "foo" {
   config = {
     secret_suffix    = "state"
     load_config_file = true
+    config_path      = "~/.kube/config"
   }
 }
