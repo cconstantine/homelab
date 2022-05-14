@@ -5,8 +5,3 @@ terraform {
     }
   }
 }
-
-# provider "pihole" {
-#   url      = var.pi_hole_module.url
-#   password = var.pi_hole_module.password
-# }
