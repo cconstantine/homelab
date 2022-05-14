@@ -168,7 +168,7 @@ resource "kubernetes_ingress" "prometheus_ingress" {
 
   spec {
     rule {
-      host = "prometheus.internal"
+      host = "prometheus.${var.domain}"
       http {
         path {
           backend {

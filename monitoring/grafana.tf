@@ -96,7 +96,7 @@ resource "kubernetes_ingress" "grafana_ingress" {
 
   spec {
     rule {
-      host = "grafana.internal"
+      host = "grafana.${var.domain}"
       http {
         path {
           backend {

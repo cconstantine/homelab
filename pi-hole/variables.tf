@@ -1,0 +1,3 @@
+locals {
+  host = "pihole.internal"
+}

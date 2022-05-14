@@ -4,30 +4,25 @@ terraform {
       source  = "hashicorp/kubernetes"
       version = "2.4.1"
     }
-
-    helm = {
-      source  = "hashicorp/helm"
-      version = "~> 2.0.1"
+    pihole = {
+      source = "ryanwholey/pihole"
+      version = "0.0.11"
     }
+
   }
+  backend "kubernetes" {
+    secret_suffix    = "state"
+    config_path      = "~/.kube/config"
+  }
+
 }
-provider "helm" {
-  kubernetes {
-    config_path    = "~/.kube/config"
-    config_context = "default"
-  }
+
+provider "pihole" {
+  url      = var.pi_hole_module.url
+  password = var.pi_hole_module.password
 }
 
 provider "kubernetes" {
   config_path    = "~/.kube/config"
   config_context = "default"
-}
-
-data "terraform_remote_state" "foo" {
-  backend = "kubernetes"
-  config = {
-    secret_suffix    = "state"
-    load_config_file = true
-    config_path      = "~/.kube/config"
-  }
 }

@@ -140,7 +140,7 @@ resource "kubernetes_ingress" "pihole_ingress" {
 
   spec {
     rule {
-      host = "pihole.internal"
+      host = local.host
       http {
         path {
           backend {
