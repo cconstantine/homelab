@@ -4,9 +4,10 @@ module "monitoring" {
 }
 
 module "monitoring_dns" {
-  source         = "./pi-hole-entry"
-  pi_hole_module = module.pi_hole
-  record         = "grafana.internal"
-  ip             = module.monitoring.grafana_ingress.status.0.load_balancer.0.ingress.0.ip
-  ingress        = module.monitoring.public_services["grafana.internal"]
+  for_each = module.monitoring.public_services
+  source         = "./pi-hole-service"
+
+
+  record         = each.key #"grafana.internal"
+  ingress        = each.value #module.monitoring.public_services["grafana.internal"]
 }
