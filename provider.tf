@@ -5,14 +5,14 @@ terraform {
       version = "2.4.1"
     }
     pihole = {
-      source = "ryanwholey/pihole"
+      source  = "ryanwholey/pihole"
       version = "0.0.11"
     }
 
   }
   backend "kubernetes" {
-    secret_suffix    = "state"
-    config_path      = "~/.kube/config"
+    secret_suffix = "state"
+    config_path   = "~/.kube/config"
   }
 
 }
