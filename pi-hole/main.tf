@@ -4,42 +4,7 @@ resource "random_password" "password" {
   override_special = "_%@"
 }
 
-resource "kubernetes_persistent_volume_claim" "etc_pihole" {
-  metadata {
-    name      = "etc-pihole"
-    namespace = kubernetes_namespace.pi_hole.metadata.0.name
-  }
-  wait_until_bound = false
-  spec {
-    access_modes = ["ReadWriteOnce"]
-    resources {
-      requests = {
-        storage = "1Gi"
-      }
-    }
-    storage_class_name = "local-path"
-  }
-}
-
-resource "kubernetes_persistent_volume_claim" "dnsmasq_pihole" {
-  metadata {
-    name      = "dnsmasq-pihole"
-    namespace = kubernetes_namespace.pi_hole.metadata.0.name
-  }
-  wait_until_bound = false
-  spec {
-    access_modes = ["ReadWriteOnce"]
-    resources {
-      requests = {
-        storage = "1Gi"
-      }
-    }
-    storage_class_name = "local-path"
-  }
-}
-
-
-resource "kubernetes_stateful_set" "pi_hole" {
+resource "kubernetes_stateful_set_v1" "pi_hole" {
   timeouts {
     create = "2m"
     delete = "2h"
@@ -65,18 +30,6 @@ resource "kubernetes_stateful_set" "pi_hole" {
         }
       }
       spec {
-        volume {
-          name = "etc-pihole"
-          persistent_volume_claim {
-            claim_name = kubernetes_persistent_volume_claim.etc_pihole.metadata.0.name
-          }
-        }
-        volume {
-          name = "dnsmasq-pihole"
-          persistent_volume_claim {
-            claim_name = kubernetes_persistent_volume_claim.dnsmasq_pihole.metadata.0.name
-          }
-        }
         container {
           name              = "pi-hole"
           image             = "pihole/pihole:latest"
@@ -92,6 +45,32 @@ resource "kubernetes_stateful_set" "pi_hole" {
           volume_mount {
             name       = "dnsmasq-pihole"
             mount_path = "/etc/dnsmasq.d/"
+          }
+        }
+      }
+    }
+    volume_claim_template {
+      metadata {
+        name = "etc-pihole"
+      }
+      spec {
+        access_modes = ["ReadWriteOnce"]
+        resources {
+          requests = {
+            storage = "1Gi"
+          }
+        }
+      }
+    }
+    volume_claim_template {
+      metadata {
+        name = "dnsmasq-pihole"
+      }
+      spec {
+        access_modes = ["ReadWriteOnce"]
+        resources {
+          requests = {
+            storage = "1Gi"
           }
         }
       }
@@ -114,6 +93,24 @@ resource "kubernetes_service" "pihole_web" {
   }
 }
 
+resource "kubernetes_service" "pihole_api" {
+  metadata {
+    name      = "pihole-api"
+    namespace = kubernetes_namespace.pi_hole.metadata.0.name
+  }
+  spec {
+    selector = {
+      name = "pihole"
+    }
+    type = "LoadBalancer"
+    port {
+      name     = "api"
+      port     = 8080
+      target_port = 80
+    }
+  }
+}
+
 resource "kubernetes_service" "pihole_dns" {
   metadata {
     name      = "pihole-dns"
@@ -132,7 +129,7 @@ resource "kubernetes_service" "pihole_dns" {
   }
 }
 
-resource "kubernetes_ingress" "pihole_ingress" {
+resource "kubernetes_ingress_v1" "pihole_ingress" {
   metadata {
     name      = "pihole-ingress"
     namespace = kubernetes_namespace.pi_hole.metadata.0.name
@@ -140,12 +137,16 @@ resource "kubernetes_ingress" "pihole_ingress" {
 
   spec {
     rule {
-      host = local.host
+      host = var.fqdn
       http {
         path {
           backend {
-            service_name = kubernetes_service.pihole_web.metadata.0.name
-            service_port = 80
+            service {
+              name = kubernetes_service.pihole_web.metadata.0.name
+              port {
+                number = 80
+              }
+            }
           }
         }
       }

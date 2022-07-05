@@ -88,7 +88,7 @@ resource "kubernetes_service" "grafana" {
   }
 }
 
-resource "kubernetes_ingress" "grafana_ingress" {
+resource "kubernetes_ingress_v1" "grafana_ingress" {
   metadata {
     name      = "grafana-ingress"
     namespace = kubernetes_namespace.monitoring.metadata.0.name
@@ -100,11 +100,22 @@ resource "kubernetes_ingress" "grafana_ingress" {
       http {
         path {
           backend {
-            service_name = kubernetes_service.grafana.metadata.0.name
-            service_port = 3000
+            service {
+              name = kubernetes_service.grafana.metadata.0.name
+              port {
+                number = 3000
+              }
+            }
           }
         }
       }
     }
   }
+}
+
+module "grafana_dns" {
+  source   = "../pi-hole-service"
+
+  record  = "grafana.${var.domain}"
+  ingress = kubernetes_ingress_v1.grafana_ingress
 }

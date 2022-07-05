@@ -1,10 +1,3 @@
-# variable "pi_hole_module" {
-#   type = object({
-#     url      = string
-#     password = string
-#   })
-# }
-
 variable "record" {
   type = string
 }

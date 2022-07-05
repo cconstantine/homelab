@@ -1,3 +1,3 @@
-locals {
-  host = "pihole.internal"
+variable "fqdn" {
+  type = string
 }

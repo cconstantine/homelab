@@ -138,7 +138,6 @@ resource "kubernetes_stateful_set" "prometheus" {
                 memory = "4Gi"
             }
           }
-
         }
       }
     }
@@ -150,17 +149,15 @@ resource "kubernetes_stateful_set" "prometheus" {
         access_modes = ["ReadWriteOnce"]
         resources {
           requests = {
-            storage = "20Gi"
+            storage = "100Gi"
           }
         }
-        storage_class_name = "local-path"
       }
     }
-
   }
 }
 
-resource "kubernetes_ingress" "prometheus_ingress" {
+resource "kubernetes_ingress_v1" "prometheus_ingress" {
   metadata {
     name      = "prometheus-ingress"
     namespace = kubernetes_namespace.monitoring.metadata.0.name
@@ -172,11 +169,22 @@ resource "kubernetes_ingress" "prometheus_ingress" {
       http {
         path {
           backend {
-            service_name = kubernetes_service.prometheus.metadata.0.name
-            service_port = 9090
+            service {
+              name = kubernetes_service.prometheus.metadata.0.name
+              port {
+                number = 9090
+              }
+            }
           }
         }
       }
     }
   }
+}
+
+module "prometheus_dns" {
+  source   = "../pi-hole-service"
+
+  record  = "prometheus.${var.domain}"
+  ingress = kubernetes_ingress_v1.prometheus_ingress
 }

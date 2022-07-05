@@ -1,8 +1,7 @@
 terraform {
   required_providers {
     kubernetes = {
-      source  = "hashicorp/kubernetes"
-      version = "2.4.1"
+      source = "hashicorp/kubernetes"
     }
     pihole = {
       source = "ryanwholey/pihole"
@@ -11,11 +10,10 @@ terraform {
   }
   backend "kubernetes" {
     secret_suffix = "state"
-    config_path   = "~/.kube/config"
+    config_path   = "~/.kube/homelab-config"
   }
 
 }
-
 
 provider "pihole" {
   url      = module.pi_hole.url
@@ -23,6 +21,6 @@ provider "pihole" {
 }
 
 provider "kubernetes" {
-  config_path    = "~/.kube/config"
+  config_path    = "~/.kube/homelab-config"
   config_context = "default"
 }

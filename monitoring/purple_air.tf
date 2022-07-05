@@ -21,7 +21,7 @@ resource "kubernetes_deployment" "purple_air_exporter" {
       spec {
         container {
           name  = "purple-air-exporter"
-          image = "cconstantine/purpleair-to-prometheus:latest"
+          image = "wbertelsen/purpleair-to-prometheus:latest"
           command = ["./purple_to_prom.py",
             "--sensor-ids",
             "71601"
