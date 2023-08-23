@@ -1,0 +1,3 @@
+module "wireguard" {
+    source = "./wireguard"
+}
