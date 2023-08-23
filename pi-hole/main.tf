@@ -117,6 +117,7 @@ resource "kubernetes_service" "pihole_dns" {
     namespace = kubernetes_namespace.pi_hole.metadata.0.name
   }
   spec {
+    external_traffic_policy = "Local"
     selector = {
       name = "pihole"
     }
