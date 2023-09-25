@@ -48,11 +48,15 @@ resource "kubernetes_stateful_set_v1" "wireguard" {
           }
           env {
             name  = "PEERS"
-            value = "1"
+            value = "10"
           }
           volume_mount {
             name       = "modules"
             mount_path = "/lib/modules"
+          }
+          volume_mount {
+            name       = "config"
+            mount_path = "/config"
           }
         }
         volume {
