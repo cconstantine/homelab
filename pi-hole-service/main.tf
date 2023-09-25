@@ -1,5 +1,5 @@
 locals {
-  ip = var.ingress.status.0.load_balancer.0.ingress.0.ip
+  ip = var.ingress != null ? var.ingress.status.0.load_balancer.0.ingress.0.ip : var.ip
 }
 
 resource "pihole_dns_record" "record" {

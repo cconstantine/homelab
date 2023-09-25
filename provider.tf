@@ -10,7 +10,7 @@ terraform {
   }
   backend "kubernetes" {
     secret_suffix = "state"
-    config_path   = "~/.kube/homelab-config"
+    config_path   = "~/.kube/config"
   }
 
 }
@@ -21,6 +21,6 @@ provider "pihole" {
 }
 
 provider "kubernetes" {
-  config_path    = "~/.kube/homelab-config"
+  config_path    = "~/.kube/config"
   config_context = "default"
 }

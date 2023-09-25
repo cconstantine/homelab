@@ -35,9 +35,6 @@ scrape_configs:
     static_configs:
     - targets: ["192.168.1.161:9186"]
 
-  - job_name: "phd2_exporter"
-    static_configs:
-    - targets: ["192.168.1.161:9187"]
   # # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
   # - job_name: "prometheus"
 

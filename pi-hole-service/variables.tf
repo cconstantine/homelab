@@ -2,7 +2,13 @@ variable "record" {
   type = string
 }
 
+variable "ip" {
+  default = null
+  type = string
+}
+
 variable "ingress" {
+  default = null
   type = object({
     status = list(
       object({

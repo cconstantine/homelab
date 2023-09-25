@@ -1,0 +1,16 @@
+server:
+  address: ${phd2_host}:4400
+  listen: 0.0.0.0:9187
+metrics:
+  guide_snr_histo: !Linear
+    start: 10.0
+    width: 5.0
+    count: 50
+  guide_star_mass_histo: !Exponential
+    start: 10000.0
+    factor: 1.1
+    count: 50
+  guide_hfd_histo: !Linear
+    start: 1.0
+    width: 0.1
+    count: 50
