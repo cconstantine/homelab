@@ -46,11 +46,15 @@ resource "kubernetes_deployment" "phd2_exporter" {
 
         container {
           name  = "phd2-exporter"
-          image = "ghcr.io/twinkle-astronomy/phd2_exporter:latest"
+          image = "ghcr.io/twinkle-astronomy/phd2_exporter:v0.2.4"
           image_pull_policy = "Always"
           command = ["phd2_exporter",
             "/etc/phd2_exporter/config.yaml",
           ]
+          env {
+            name = "LOG"
+            value = "debug"
+          }
 
           volume_mount {
             name       = "config-yaml"
