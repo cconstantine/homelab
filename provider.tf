@@ -6,7 +6,6 @@ terraform {
     pihole = {
       source = "ryanwholey/pihole"
     }
-
   }
   backend "kubernetes" {
     secret_suffix = "state"

@@ -16,6 +16,50 @@ resource "kubernetes_service" "prometheus" {
   }
 }
 
+resource "kubernetes_persistent_volume" "prometheus_local_data" {
+  metadata {
+    name = "prometheus-local-data"
+    labels = {
+      type = "local"
+      app  = "prometheus"
+    }
+  }
+  spec {
+    capacity = {
+      storage = "100Gi"
+    }
+    access_modes = ["ReadWriteOnce"]
+    persistent_volume_reclaim_policy = "Retain"
+    storage_class_name = "local-storage"
+    persistent_volume_source {
+      local {
+        path = "/storage/prometheus/data"
+      }
+    }
+    node_affinity {
+      required {
+        node_selector_term {
+          match_expressions {
+            key = "kubernetes.io/hostname"
+            operator = "In"
+            values = ["homelab"]
+          }
+        }
+      }
+    }
+  }
+}
+
+# Create a storage class for local storage
+resource "kubernetes_storage_class" "local_storage" {
+  metadata {
+    name = "local-storage"
+  }
+  storage_provisioner = "kubernetes.io/no-provisioner"
+  volume_binding_mode = "WaitForFirstConsumer"
+}
+
+
 resource "kubernetes_cluster_role" "prometheus" {
   metadata {
     name = "prometheus-role"
@@ -103,7 +147,7 @@ resource "kubernetes_stateful_set" "prometheus" {
           command           = ["chown", "-R", "nobody:nobody", "/prometheus"]
 
           volume_mount {
-            name       = "prometheus-data"
+            name       = "prometheus-storage"
             mount_path = "/prometheus"
             sub_path   = ""
           }
@@ -124,11 +168,12 @@ resource "kubernetes_stateful_set" "prometheus" {
             "--config.file=/etc/prometheus/prometheus.yml",
             "--storage.tsdb.path=/prometheus",
             "--web.console.libraries=/usr/share/prometheus/console_libraries",
-            "--web.console.templates=/usr/share/prometheus/consoles"
+            "--web.console.templates=/usr/share/prometheus/consoles",
+            "--web.enable-admin-api"
           ]
 
           volume_mount {
-            name       = "prometheus-data"
+            name       = "prometheus-storage"
             mount_path = "/prometheus"
           }
 
@@ -150,17 +195,25 @@ resource "kubernetes_stateful_set" "prometheus" {
         }
       }
     }
+
     volume_claim_template {
       metadata {
-        name = "prometheus-data"
+        name = "prometheus-storage"
       }
       spec {
         access_modes = ["ReadWriteOnce"]
+        storage_class_name = "local-storage"
         resources {
           requests = {
             storage = "100Gi"
           }
         }
+        # selector {
+        #   match_labels = {
+        #     type = "local"
+        #     app  = "prometheus"
+        #   }
+        # }
       }
     }
   }

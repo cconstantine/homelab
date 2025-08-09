@@ -1,0 +1,45 @@
+mqtt:
+  enabled: False
+
+go2rtc:
+  streams:
+    telescope:
+      - rtsp://stream:xj27c7jo@192.168.8.64:554/Streaming/Channels/101
+
+cameras:
+  telescope:
+    enabled: true
+    ffmpeg:
+      inputs:
+        - path: rtsp://stream:xj27c7jo@192.168.8.64:554/Streaming/Channels/101
+          roles:
+            - detect
+            - record
+      input_args: >-
+        -avoid_negative_ts make_zero
+        -fflags +genpts+discardcorrupt
+        -rtsp_transport tcp
+        -timeout 5000000
+      output_args:
+        detect: -f rawvideo -pix_fmt yuv420p
+        record: -f segment -segment_time 60 -segment_format mp4 -reset_timestamps 1 -c copy -strftime 1 -strftime_mkdir 1 
+
+    detect:
+      enabled: True
+      width: 640
+      height: 360
+      fps: 2
+
+record:
+  enabled: True
+  retain:
+    days: 3
+    mode: all
+
+logger:
+  default: info
+  logs:
+    frigate.video: debug
+    frigate.object_detection: info
+    frigate.motion: info
+    frigate.edgetpu: info

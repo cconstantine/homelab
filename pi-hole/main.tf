@@ -21,7 +21,7 @@ resource "kubernetes_stateful_set_v1" "pi_hole" {
         name = "pihole"
       }
     }
-    service_name = kubernetes_service.pihole_dns.metadata.0.name
+    service_name = "pihole-dns"
 
     template {
       metadata {
@@ -47,30 +47,19 @@ resource "kubernetes_stateful_set_v1" "pi_hole" {
             mount_path = "/etc/dnsmasq.d/"
           }
         }
-      }
-    }
-    volume_claim_template {
-      metadata {
-        name = "etc-pihole"
-      }
-      spec {
-        access_modes = ["ReadWriteOnce"]
-        resources {
-          requests = {
-            storage = "1Gi"
+        volume {
+          name = "etc-pihole"
+          host_path {
+            path = "/storage/pihole/etc-pihole"
+            type = "DirectoryOrCreate"
           }
         }
-      }
-    }
-    volume_claim_template {
-      metadata {
-        name = "dnsmasq-pihole"
-      }
-      spec {
-        access_modes = ["ReadWriteOnce"]
-        resources {
-          requests = {
-            storage = "1Gi"
+
+        volume {
+          name = "dnsmasq-pihole"
+          host_path {
+            path = "/storage/pihole/dnsmasq"
+            type = "DirectoryOrCreate"
           }
         }
       }
@@ -104,8 +93,8 @@ resource "kubernetes_service" "pihole_api" {
     }
     type = "LoadBalancer"
     port {
-      name     = "api"
-      port     = 8080
+      name        = "api"
+      port        = 8080
       target_port = 80
     }
   }
@@ -152,6 +141,5 @@ resource "kubernetes_ingress_v1" "pihole_ingress" {
         }
       }
     }
-
   }
 }

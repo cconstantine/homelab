@@ -1,3 +1,3 @@
-module "wireguard" {
-  source = "./wireguard"
-}
+# module "wireguard" {
+#   source = "./wireguard"
+# }

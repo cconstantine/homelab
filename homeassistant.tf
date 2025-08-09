@@ -1,4 +1,6 @@
-resource "pihole_dns_record" "record" {
-  domain = "homeassistant.homelab"
-  ip     = "192.168.1.228"
+module "homeassistant_dns" {
+  source   = "./pi-hole-service"
+
+  record  = "homeassistant.homelab"
+  ip = "192.168.8.228"
 }

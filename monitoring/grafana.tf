@@ -50,7 +50,7 @@ resource "kubernetes_deployment" "grafana" {
         }
         container {
           name  = "grafana"
-          image = "grafana/grafana:8.1.2"
+          image = "grafana/grafana:10.1.9"
 
           volume_mount {
             mount_path = "/var/lib/grafana"
