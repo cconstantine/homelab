@@ -40,6 +40,16 @@ scrape_configs:
     static_configs:
     - targets: ["10.0.0.6:9186"]
 
+  - job_name: 'sensors'
+    static_configs:
+      - targets:
+        - 'pico-climate-e38a2a2a.lan:80'
+        labels:
+          location: "Chris Office"
+      - targets:
+        - 'pico-climate-e3917228.lan:80'
+        labels:
+          location: "Front Porch"
   # # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
   # - job_name: "prometheus"
 
