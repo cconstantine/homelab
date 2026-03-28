@@ -3,6 +3,9 @@ terraform {
     kubernetes = {
       source = "hashicorp/kubernetes"
     }
+    helm = {
+      source = "hashicorp/helm"
+    }
     pihole = {
       source = "ryanwholey/pihole"
     }
@@ -22,4 +25,11 @@ provider "pihole" {
 provider "kubernetes" {
   config_path    = "~/.kube/config"
   config_context = "default"
+}
+
+provider "helm" {
+  kubernetes = {
+    config_path    = "~/.kube/config"
+    config_context = "default"
+  }
 }
