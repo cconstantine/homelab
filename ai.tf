@@ -1,4 +1,4 @@
 module "ai" {
- source = "./ai"
- domain = "homelab"
+  source = "./ai"
+  domain = "homelab"
 }

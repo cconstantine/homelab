@@ -2,7 +2,7 @@ locals {
   runner_node_arch = {
     amd64 = "amd64"
     arm64 = "arm64"
-    armv7 = "amd64"
+    armv7 = "arm64"
   }
 }
 
@@ -103,7 +103,7 @@ resource "helm_release" "arc_runner_set" {
                 { name = "dind-docker", mountPath = "/var/lib/docker" }
               ]
             },
-            each.key == "arm64" ? {
+            each.key == "arm64" || each.key == "armv7" ? {
               command = ["sh", "-c"]
               args    = ["apk add --no-cache iptables-legacy && for cmd in iptables ip6tables iptables-save iptables-restore ip6tables-save ip6tables-restore; do ln -sf /usr/sbin/xtables-legacy-multi /usr/sbin/$cmd; done && exec dockerd-entrypoint.sh dockerd --host=unix:///var/run/docker.sock --group=123"]
             } : {

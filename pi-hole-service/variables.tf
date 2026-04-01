@@ -4,7 +4,7 @@ variable "record" {
 
 variable "ip" {
   default = null
-  type = string
+  type    = string
 }
 
 variable "ingress" {

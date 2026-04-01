@@ -34,7 +34,7 @@ scrape_configs:
 
   - job_name: "node_exporter_external"
     static_configs:
-    - targets: ["192.168.1.139:9100", "10.0.0.6:9100", "192.168.1.1:9100", "10.0.0.132:9100"]
+    - targets: ["192.168.1.139:9100", "10.0.0.6:9100", "192.168.1.1:9100", "10.0.0.132:9100", "pixo.lan:9100"]
 
   - job_name: "indi_exporter"
     static_configs:
@@ -45,11 +45,41 @@ scrape_configs:
       - targets:
         - 'pico-climate-e38a2a2a.lan:80'
         labels:
-          location: "Chris Office"
+          location: "Living Room"
       - targets:
         - 'pico-climate-e3917228.lan:80'
         labels:
           location: "Front Porch"
+      - targets:
+        - 'pico-climate-93749332.lan:80'
+        labels:
+          location: "Chris Dev"
+      - targets:
+        - 'pico-climate-cb76212c.lan:80'
+        labels:
+          location: "Dinning Room"
+      - targets:
+        - 'pico-climate-93818635.lan:80'
+        labels:
+          location: "Chris Bedroom"
+
+      - targets:
+        - 'pico-climate-93508f35.lan:80'
+        labels:
+          location: "Teegan Bedroom"
+      - targets:
+        - 'pico-climate-cb41752a.lan:80'
+        labels:
+          location: "Chris Office"
+      - targets:
+        - 'pico-climate-93715b35.lan:80'
+        labels:
+          location: "Chris Trailer Outside"
+      - targets:
+        - 'pico-climate-e39f6228.lan:80'
+        labels:
+          location: "Chris Trailer Fridge"
+
   # # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
   # - job_name: "prometheus"
 

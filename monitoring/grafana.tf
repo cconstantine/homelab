@@ -1,6 +1,6 @@
 resource "kubernetes_persistent_volume_claim" "grafana_data" {
   metadata {
-    name = "grafana-data"
+    name      = "grafana-data"
     namespace = kubernetes_namespace.monitoring.metadata.0.name
   }
   wait_until_bound = false
@@ -45,7 +45,7 @@ resource "kubernetes_deployment" "grafana" {
           command           = ["chown", "-R", "472:472", "/var/lib/grafana"]
           volume_mount {
             mount_path = "/var/lib/grafana"
-            name = "grafana-data"
+            name       = "grafana-data"
           }
         }
         container {
@@ -54,10 +54,10 @@ resource "kubernetes_deployment" "grafana" {
 
           volume_mount {
             mount_path = "/var/lib/grafana"
-            name = "grafana-data"
+            name       = "grafana-data"
           }
           env {
-            name = "GF_AUTH_ANONYMOUS_ENABLED"
+            name  = "GF_AUTH_ANONYMOUS_ENABLED"
             value = "true"
           }
         }
@@ -114,7 +114,7 @@ resource "kubernetes_ingress_v1" "grafana_ingress" {
 }
 
 module "grafana_dns" {
-  source   = "../pi-hole-service"
+  source = "../pi-hole-service"
 
   record  = "grafana.${var.domain}"
   ingress = kubernetes_ingress_v1.grafana_ingress

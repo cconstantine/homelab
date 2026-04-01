@@ -1,6 +1,6 @@
 module "frigate" {
- source = "./frigate"
- domain = "homelab"
+  source = "./frigate"
+  domain = "homelab"
 }
 
 # module "prometheus_dns" {

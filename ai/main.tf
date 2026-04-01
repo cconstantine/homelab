@@ -25,9 +25,9 @@ resource "kubernetes_persistent_volume" "chat_data" {
     capacity = {
       storage = "100Gi"
     }
-    access_modes = ["ReadWriteOnce"]
+    access_modes                     = ["ReadWriteOnce"]
     persistent_volume_reclaim_policy = "Retain"
-    storage_class_name = "local-storage"
+    storage_class_name               = "local-storage"
     persistent_volume_source {
       local {
         path = "/storage/chat/data"
@@ -37,9 +37,9 @@ resource "kubernetes_persistent_volume" "chat_data" {
       required {
         node_selector_term {
           match_expressions {
-            key = "kubernetes.io/hostname"
+            key      = "kubernetes.io/hostname"
             operator = "In"
-            values = ["homelab"]
+            values   = ["homelab"]
           }
         }
       }
@@ -74,7 +74,7 @@ resource "kubernetes_stateful_set" "chat" {
           name  = "chat"
           image = "ghcr.io/open-webui/open-webui:main"
           env {
-            name = "OLLAMA_BASE_URL"
+            name  = "OLLAMA_BASE_URL"
             value = "http://192.168.8.217:11434"
           }
           volume_mount {
@@ -90,7 +90,7 @@ resource "kubernetes_stateful_set" "chat" {
         name = "chat-data"
       }
       spec {
-        access_modes = ["ReadWriteOnce"]
+        access_modes       = ["ReadWriteOnce"]
         storage_class_name = "local-storage"
         resources {
           requests = {
@@ -128,7 +128,7 @@ resource "kubernetes_ingress_v1" "chat" {
 }
 
 module "chat_dns" {
-  source   = "../pi-hole-service"
+  source = "../pi-hole-service"
 
   record  = "chat.${var.domain}"
   ingress = kubernetes_ingress_v1.chat

@@ -3,7 +3,7 @@ resource "github_repository" "homelab" {
   description = ""
 
   visibility = "public"
-  auto_init = true
+  auto_init  = true
 }
 
 resource "github_branch" "master" {
@@ -11,7 +11,7 @@ resource "github_branch" "master" {
   branch     = "master"
 }
 
-resource "github_branch_default" "default"{
+resource "github_branch_default" "default" {
   repository = github_repository.homelab.name
   branch     = github_branch.master.branch
 }

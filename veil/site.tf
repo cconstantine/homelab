@@ -24,7 +24,7 @@ resource "kubernetes_deployment" "veil_exporter" {
           image = "ghcr.io/cconstantine/veil:latest"
           port {
             container_port = 80
-            protocol = "TCP"
+            protocol       = "TCP"
           }
         }
       }
@@ -74,7 +74,7 @@ resource "kubernetes_ingress_v1" "veil" {
 }
 
 module "veil_dns" {
-  source   = "../pi-hole-service"
+  source = "../pi-hole-service"
 
   record  = "veil.${var.domain}"
   ingress = kubernetes_ingress_v1.veil

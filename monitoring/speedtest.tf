@@ -24,10 +24,10 @@ resource "kubernetes_deployment" "speedtest_exporter" {
           image = "miguelndecarvalho/speedtest-exporter:latest"
           port {
             container_port = 9798
-            protocol = "TCP"
+            protocol       = "TCP"
           }
           env {
-            name = "SPEEDTEST_PORT"
+            name  = "SPEEDTEST_PORT"
             value = "9798"
           }
         }

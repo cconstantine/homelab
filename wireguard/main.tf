@@ -30,9 +30,9 @@ resource "kubernetes_stateful_set_v1" "wireguard" {
           image             = "lscr.io/linuxserver/wireguard:latest"
           image_pull_policy = "IfNotPresent"
           security_context {
-             capabilities {
-               add = ["NET_ADMIN", "SYS_MODULE"]
-             }
+            capabilities {
+              add = ["NET_ADMIN", "SYS_MODULE"]
+            }
             #  sysctl {
             #     name = "net.ipv4.conf.all.src_valid_mark"
             #     value = "1"
@@ -60,11 +60,11 @@ resource "kubernetes_stateful_set_v1" "wireguard" {
           }
         }
         volume {
-            name = "modules"
-            host_path {
-                path = "/lib/modules"
-                type = "Directory"
-            }
+          name = "modules"
+          host_path {
+            path = "/lib/modules"
+            type = "Directory"
+          }
         }
       }
     }

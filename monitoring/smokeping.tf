@@ -20,12 +20,12 @@ resource "kubernetes_deployment" "smokeping_exporter" {
       }
       spec {
         container {
-          name  = "smokeping-exporter"
-          image = "quay.io/superq/smokeping-prober:latest"
+          name    = "smokeping-exporter"
+          image   = "quay.io/superq/smokeping-prober:latest"
           command = ["smokeping_prober", "google.com"]
           port {
             container_port = 9374
-            protocol = "TCP"
+            protocol       = "TCP"
           }
         }
       }

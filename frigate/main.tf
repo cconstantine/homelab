@@ -28,14 +28,14 @@ resource "kubernetes_persistent_volume" "frigate_nfs_media" {
     labels = {
       type = "nfs"
       app  = "frigate"
-      use = "media"
+      use  = "media"
     }
   }
   spec {
     capacity = {
       storage = "100Gi"
     }
-    access_modes = ["ReadWriteMany"]
+    access_modes       = ["ReadWriteMany"]
     storage_class_name = kubernetes_storage_class.nfs.metadata[0].name
     persistent_volume_source {
       nfs {
@@ -53,14 +53,14 @@ resource "kubernetes_persistent_volume" "frigate_nfs_config" {
     labels = {
       type = "nfs"
       app  = "frigate"
-      use = "config"
+      use  = "config"
     }
   }
   spec {
     capacity = {
       storage = "1Gi"
     }
-    access_modes = ["ReadWriteMany"]
+    access_modes       = ["ReadWriteMany"]
     storage_class_name = kubernetes_storage_class.nfs.metadata[0].name
     persistent_volume_source {
       nfs {
@@ -115,18 +115,18 @@ resource "kubernetes_stateful_set" "frigate" {
         }
 
         volume {
-            name = "tmp-cache"
-            empty_dir {
-              medium = "Memory"
-              size_limit = "1G"
-            }
+          name = "tmp-cache"
+          empty_dir {
+            medium     = "Memory"
+            size_limit = "1G"
+          }
         }
 
         container {
           name  = "frigate"
           image = "ghcr.io/blakeblackshear/frigate:stable"
           env {
-            name = "FRIGATE_RTSP_PASSWORD"
+            name  = "FRIGATE_RTSP_PASSWORD"
             value = "password"
           }
           volume_mount {
@@ -142,11 +142,11 @@ resource "kubernetes_stateful_set" "frigate" {
           volume_mount {
             name       = "config-yml"
             mount_path = "/config/config.yml"
-            sub_path = "config.yml"
+            sub_path   = "config.yml"
           }
-          
+
           volume_mount {
-            name = "tmp-cache"
+            name       = "tmp-cache"
             mount_path = "/tmp/cache"
           }
         }
@@ -159,11 +159,11 @@ resource "kubernetes_stateful_set" "frigate" {
         labels = {
           type = "nfs"
           app  = "frigate"
-          use = "config"
+          use  = "config"
         }
       }
       spec {
-        access_modes = ["ReadWriteMany"]
+        access_modes       = ["ReadWriteMany"]
         storage_class_name = kubernetes_storage_class.nfs.metadata[0].name
         resources {
           requests = {
@@ -174,7 +174,7 @@ resource "kubernetes_stateful_set" "frigate" {
           match_labels = {
             type = "nfs"
             app  = "frigate"
-            use = "config"
+            use  = "config"
           }
         }
       }
@@ -185,11 +185,11 @@ resource "kubernetes_stateful_set" "frigate" {
         labels = {
           type = "nfs"
           app  = "frigate"
-          use = "media"
+          use  = "media"
         }
       }
       spec {
-        access_modes = ["ReadWriteMany"]
+        access_modes       = ["ReadWriteMany"]
         storage_class_name = kubernetes_storage_class.nfs.metadata[0].name
         resources {
           requests = {
@@ -200,7 +200,7 @@ resource "kubernetes_stateful_set" "frigate" {
           match_labels = {
             type = "nfs"
             app  = "frigate"
-            use = "media"
+            use  = "media"
           }
         }
       }
@@ -234,7 +234,7 @@ resource "kubernetes_ingress_v1" "frigate" {
 }
 
 module "frigate_dns" {
-  source   = "../pi-hole-service"
+  source = "../pi-hole-service"
 
   record  = "frigate.${var.domain}"
   ingress = kubernetes_ingress_v1.frigate

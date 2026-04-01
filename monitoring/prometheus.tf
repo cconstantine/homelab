@@ -28,9 +28,9 @@ resource "kubernetes_persistent_volume" "prometheus_local_data" {
     capacity = {
       storage = "100Gi"
     }
-    access_modes = ["ReadWriteOnce"]
+    access_modes                     = ["ReadWriteOnce"]
     persistent_volume_reclaim_policy = "Retain"
-    storage_class_name = "local-storage"
+    storage_class_name               = "local-storage"
     persistent_volume_source {
       local {
         path = "/storage/prometheus/data"
@@ -40,9 +40,9 @@ resource "kubernetes_persistent_volume" "prometheus_local_data" {
       required {
         node_selector_term {
           match_expressions {
-            key = "kubernetes.io/hostname"
+            key      = "kubernetes.io/hostname"
             operator = "In"
-            values = ["homelab"]
+            values   = ["homelab"]
           }
         }
       }
@@ -112,7 +112,7 @@ resource "kubernetes_config_map" "prometheus_yml" {
 
   data = {
     "prometheus.yml" = "${file("${path.module}/config/prometheus.yml")}"
-    "rules.yml" = "${file("${path.module}/config/rules.yml")}"
+    "rules.yml"      = "${file("${path.module}/config/rules.yml")}"
   }
 }
 
@@ -161,7 +161,7 @@ resource "kubernetes_stateful_set" "prometheus" {
 
         container {
           name  = "prometheus"
-          image = "prom/prometheus:v2.44.0"
+          image = "prom/prometheus:v3.8.0"
 
           args = [
             "--storage.tsdb.retention.time=365d",
@@ -184,12 +184,12 @@ resource "kubernetes_stateful_set" "prometheus" {
 
           resources {
             requests = {
-              cpu = "1"
+              cpu    = "1"
               memory = "4Gi"
             }
             limits = {
-                cpu = "12"
-                memory = "4Gi"
+              cpu    = "12"
+              memory = "4Gi"
             }
           }
         }
@@ -201,7 +201,7 @@ resource "kubernetes_stateful_set" "prometheus" {
         name = "prometheus-storage"
       }
       spec {
-        access_modes = ["ReadWriteOnce"]
+        access_modes       = ["ReadWriteOnce"]
         storage_class_name = "local-storage"
         resources {
           requests = {
@@ -245,7 +245,7 @@ resource "kubernetes_ingress_v1" "prometheus_ingress" {
 }
 
 module "prometheus_dns" {
-  source   = "../pi-hole-service"
+  source = "../pi-hole-service"
 
   record  = "prometheus.${var.domain}"
   ingress = kubernetes_ingress_v1.prometheus_ingress
