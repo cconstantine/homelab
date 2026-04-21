@@ -1,3 +1,17 @@
+detectors:
+  tensorrt:
+    type: tensorrt
+    device: 0
+
+model:
+  path: /config/model_cache/tensorrt/yolov7-tiny-416.trt
+  input_tensor: nchw
+  input_pixel_format: rgb
+  width: 416
+  height: 416
+
+
+
 mqtt:
   enabled: False
 
@@ -10,6 +24,7 @@ cameras:
   telescope:
     enabled: true
     ffmpeg:
+      hwaccel_args: preset-jetson-h264
       inputs:
         - path: rtsp://stream:xj27c7jo@192.168.8.64:554/Streaming/Channels/101
           roles:
@@ -32,9 +47,14 @@ cameras:
 
 record:
   enabled: True
-  retain:
-    days: 3
-    mode: all
+  alerts:
+    retain:
+      days: 3
+      mode: active_objects
+  detections:
+    retain:
+      days: 3
+      mode: active_objects
 
 logger:
   default: info

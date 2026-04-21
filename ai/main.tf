@@ -71,11 +71,12 @@ resource "kubernetes_stateful_set" "chat" {
       }
       spec {
         container {
-          name  = "chat"
-          image = "ghcr.io/open-webui/open-webui:main"
+          name              = "chat"
+          image             = "ghcr.io/open-webui/open-webui:main"
+          image_pull_policy = "Always"
           env {
             name  = "OLLAMA_BASE_URL"
-            value = "http://192.168.8.217:11434"
+            value = "http://ollama:11434"
           }
           volume_mount {
             name       = "chat-data"

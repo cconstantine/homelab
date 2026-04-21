@@ -106,6 +106,10 @@ resource "kubernetes_stateful_set" "frigate" {
         }
       }
       spec {
+        node_selector = {
+          "nvidia.com/gpu.present" = "true"
+        }
+        runtime_class_name = "nvidia"
 
         volume {
           name = "config-yml"
@@ -122,12 +126,28 @@ resource "kubernetes_stateful_set" "frigate" {
           }
         }
 
+        volume {
+          name = "dshm"
+          empty_dir {
+            medium     = "Memory"
+            size_limit = "256M"
+          }
+        }
+
         container {
           name  = "frigate"
-          image = "ghcr.io/blakeblackshear/frigate:stable"
+          image = "ghcr.io/blakeblackshear/frigate:stable-tensorrt-jp5"
           env {
             name  = "FRIGATE_RTSP_PASSWORD"
             value = "password"
+          }
+          env {
+            name  = "YOLO_MODELS"
+            value = "yolov7-tiny-416"
+          }
+          env {
+            name  = "TRT_MODEL_PREP_DEVICE"
+            value = "0"
           }
           volume_mount {
             name       = "frigate-media"
@@ -148,6 +168,17 @@ resource "kubernetes_stateful_set" "frigate" {
           volume_mount {
             name       = "tmp-cache"
             mount_path = "/tmp/cache"
+          }
+
+          volume_mount {
+            name       = "dshm"
+            mount_path = "/dev/shm"
+          }
+
+          resources {
+            limits = {
+              "nvidia.com/gpu" = "1"
+            }
           }
         }
       }
