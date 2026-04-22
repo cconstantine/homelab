@@ -3,3 +3,6 @@
 
 .peers/
 .peer*
+
+.env
+.envrc
