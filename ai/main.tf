@@ -1,3 +1,19 @@
+resource "random_password" "chat_secret_key" {
+  length  = 64
+  special = false
+}
+
+resource "kubernetes_secret" "chat" {
+  metadata {
+    name      = "chat"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+  }
+
+  data = {
+    WEBUI_SECRET_KEY = random_password.chat_secret_key.result
+  }
+}
+
 resource "kubernetes_service" "chat" {
   metadata {
     name      = "chat"
@@ -77,6 +93,15 @@ resource "kubernetes_stateful_set" "chat" {
           env {
             name  = "OLLAMA_BASE_URL"
             value = "http://ollama:11434"
+          }
+          env {
+            name = "WEBUI_SECRET_KEY"
+            value_from {
+              secret_key_ref {
+                name = kubernetes_secret.chat.metadata.0.name
+                key  = "WEBUI_SECRET_KEY"
+              }
+            }
           }
           volume_mount {
             name       = "chat-data"

@@ -1,4 +1,4 @@
-resource "kubernetes_labels" "pixo16_gpu" {
+resource "kubernetes_labels" "xavier_gpu" {
   api_version = "v1"
   kind        = "Node"
   metadata {
@@ -6,6 +6,19 @@ resource "kubernetes_labels" "pixo16_gpu" {
   }
   labels = {
     "nvidia.com/gpu.present" = "true"
+    "nvidia.com/gpu.type"    = "tegra"
+  }
+}
+
+resource "kubernetes_labels" "ryzen_gpu" {
+  api_version = "v1"
+  kind        = "Node"
+  metadata {
+    name = "ryzen"
+  }
+  labels = {
+    "nvidia.com/gpu.present" = "true"
+    "nvidia.com/gpu.type"    = "discrete"
   }
 }
 
@@ -28,9 +41,9 @@ resource "kubernetes_config_map" "tegra_soc0" {
   }
 }
 
-resource "kubernetes_daemonset" "nvidia_device_plugin" {
+resource "kubernetes_daemonset" "nvidia_device_plugin_tegra" {
   metadata {
-    name      = "nvidia-device-plugin"
+    name      = "nvidia-device-plugin-tegra"
     namespace = kubernetes_namespace.namespace.metadata.0.name
   }
   wait_for_rollout = false
@@ -38,20 +51,20 @@ resource "kubernetes_daemonset" "nvidia_device_plugin" {
   spec {
     selector {
       match_labels = {
-        name = "nvidia-device-plugin"
+        name = "nvidia-device-plugin-tegra"
       }
     }
 
     template {
       metadata {
         labels = {
-          name = "nvidia-device-plugin"
+          name = "nvidia-device-plugin-tegra"
         }
       }
 
       spec {
         node_selector = {
-          "nvidia.com/gpu.present" = "true"
+          "nvidia.com/gpu.type" = "tegra"
         }
 
         toleration {
@@ -104,6 +117,65 @@ resource "kubernetes_daemonset" "nvidia_device_plugin" {
           name = "nvidia-csv"
           host_path {
             path = "/etc/nvidia-container-runtime/host-files-for-container.d"
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_daemonset" "nvidia_device_plugin_discrete" {
+  metadata {
+    name      = "nvidia-device-plugin-discrete"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+  }
+  wait_for_rollout = false
+
+  spec {
+    selector {
+      match_labels = {
+        name = "nvidia-device-plugin-discrete"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          name = "nvidia-device-plugin-discrete"
+        }
+      }
+
+      spec {
+        node_selector = {
+          "nvidia.com/gpu.type" = "discrete"
+        }
+
+        runtime_class_name = "nvidia"
+
+        toleration {
+          key      = "nvidia.com/gpu"
+          operator = "Exists"
+          effect   = "NoSchedule"
+        }
+
+        container {
+          name  = "nvidia-device-plugin"
+          image = "nvcr.io/nvidia/k8s-device-plugin:v0.14.5"
+
+          security_context {
+            privileged = true
+          }
+
+          volume_mount {
+            name       = "device-plugin"
+            mount_path = "/var/lib/kubelet/device-plugins"
+          }
+        }
+
+        volume {
+          name = "device-plugin"
+          host_path {
+            path = "/var/lib/kubelet/device-plugins"
           }
         }
       }

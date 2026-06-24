@@ -79,7 +79,7 @@ resource "helm_release" "arc_runner_set" {
           merge(
             {
               name  = "dind"
-              image = "docker:dind"
+              image = each.key == "arm64" || each.key == "armv7" ? "docker:26-dind" : "docker:dind"
               env = [{
                 name  = "DOCKER_GROUP_GID"
                 value = "123"
@@ -142,7 +142,7 @@ resource "helm_release" "arc_runner_set" {
             persistentVolumeClaim = {
               claimName = kubernetes_persistent_volume_claim.arc_docker_data[each.key].metadata.0.name
             }
-          }
+          },
         ]
       }
     }
