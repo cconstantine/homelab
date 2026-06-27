@@ -138,6 +138,16 @@ resource "kubernetes_service_v1" "ollama" {
 #   }
 # }
 
+resource "kubernetes_config_map" "ollama_exporter_script" {
+  metadata {
+    name      = "ollama-exporter-script"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+  }
+  data = {
+    "exporter.py" = file("${path.module}/ollama_exporter.py")
+  }
+}
+
 resource "kubernetes_ingress_v1" "ollama_ryzen" {
   metadata {
     name      = "ollama-ryzen"
@@ -179,6 +189,241 @@ resource "kubernetes_service_v1" "ollama_ryzen" {
   }
 }
 
+resource "kubernetes_ingress_v1" "ollama_xavier" {
+  metadata {
+    name      = "ollama-xavier"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+  }
+
+  spec {
+    rule {
+      host = "ollama-xavier.${var.domain}"
+      http {
+        path {
+          backend {
+            service {
+              name = kubernetes_service_v1.ollama_xavier.metadata.0.name
+              port {
+                number = 11434
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+resource "kubernetes_service_v1" "ollama_xavier" {
+  metadata {
+    name      = "ollama-xavier"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+  }
+  spec {
+    selector = {
+      name = "ollama-xavier"
+    }
+    port {
+      port        = 11434
+      target_port = 11434
+    }
+  }
+}
+
+resource "kubernetes_deployment_v1" "ollama_xavier" {
+  wait_for_rollout = false
+  metadata {
+    name      = "ollama-xavier"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+  }
+  spec {
+    replicas = 1
+    strategy {
+      type = "Recreate"
+    }
+    selector {
+      match_labels = {
+        name = "ollama-xavier"
+      }
+    }
+
+    template {
+      metadata {
+        labels = {
+          name = "ollama-xavier"
+        }
+        annotations = {
+          prometheus_io_scrape = "true"
+          prometheus_io_port   = "11434"
+        }
+      }
+      spec {
+        node_selector = {
+          "nvidia.com/gpu.type" = "tegra"
+        }
+
+        runtime_class_name = "nvidia"
+        host_network       = true
+
+        init_container {
+          name    = "init-storage"
+          image   = "busybox"
+          command = ["sh", "-c", "mkdir -p /host/var/lib/rancher/ollama/models"]
+          security_context {
+            privileged = true
+          }
+          volume_mount {
+            name       = "host-root"
+            mount_path = "/host"
+          }
+        }
+
+        init_container {
+          name    = "init-exporter-packages"
+          image   = "python:3.11-slim"
+          command = ["pip", "install", "--target=/packages", "--no-cache-dir", "--quiet",
+                     "fastapi", "uvicorn", "httpx", "prometheus_client"]
+          volume_mount {
+            name       = "exporter-packages"
+            mount_path = "/packages"
+          }
+        }
+
+        container {
+          name    = "ollama"
+          image   = "ollama/ollama"
+          command = ["ollama", "serve"]
+
+          port {
+            container_port = 11435
+          }
+
+          env {
+            name  = "JETSON_JETPACK"
+            value = "5"
+          }
+          env {
+            name  = "LD_LIBRARY_PATH"
+            value = "/usr/lib/ollama:/usr/lib/ollama/cuda_jetpack5"
+          }
+          env {
+            name  = "NVIDIA_VISIBLE_DEVICES"
+            value = "all"
+          }
+          env {
+            name  = "NVIDIA_DRIVER_CAPABILITIES"
+            value = "all"
+          }
+          env {
+            name  = "OLLAMA_HOST"
+            value = "0.0.0.0:11435"
+          }
+          env {
+            name  = "OLLAMA_NUM_GPU"
+            value = "999"
+          }
+          env {
+            name  = "OLLAMA_FLASH_ATTENTION"
+            value = "1"
+          }
+          env {
+            name  = "OLLAMA_KV_CACHE_TYPE"
+            value = "q8_0"
+          }
+          env {
+            name  = "OLLAMA_NUM_THREAD"
+            value = "8"
+          }
+          env {
+            name  = "OLLAMA_NUM_PARALLEL"
+            value = "1"
+          }
+          env {
+            name  = "OLLAMA_MAX_LOADED_MODELS"
+            value = "1"
+          }
+
+          resources {
+            limits = {
+              "nvidia.com/gpu" = "1"
+            }
+            requests = {
+              "nvidia.com/gpu" = "1"
+            }
+          }
+
+          volume_mount {
+            name       = "ollama-models"
+            mount_path = "/root/.ollama"
+          }
+        }
+
+        container {
+          name    = "ollama-metrics"
+          image   = "python:3.11-slim"
+          command = ["python3", "/exporter/exporter.py"]
+
+          port {
+            container_port = 11434
+          }
+
+          env {
+            name  = "OLLAMA_HOST"
+            value = "http://localhost:11435"
+          }
+
+          env {
+            name  = "PORT"
+            value = "11434"
+          }
+
+          env {
+            name  = "PYTHONPATH"
+            value = "/packages"
+          }
+
+          volume_mount {
+            name       = "exporter-packages"
+            mount_path = "/packages"
+          }
+
+          volume_mount {
+            name       = "exporter-script"
+            mount_path = "/exporter"
+          }
+        }
+
+        volume {
+          name = "host-root"
+          host_path {
+            path = "/"
+          }
+        }
+
+        volume {
+          name = "ollama-models"
+          host_path {
+            path = "/var/lib/rancher/ollama/models"
+          }
+        }
+
+        volume {
+          name = "exporter-packages"
+          empty_dir {}
+        }
+
+        volume {
+          name = "exporter-script"
+          config_map {
+            name = kubernetes_config_map.ollama_exporter_script.metadata.0.name
+          }
+        }
+
+      }
+    }
+  }
+}
+
 resource "kubernetes_deployment_v1" "ollama_ryzen" {
   wait_for_rollout = false
   metadata {
@@ -200,6 +445,10 @@ resource "kubernetes_deployment_v1" "ollama_ryzen" {
       metadata {
         labels = {
           name = "ollama-ryzen"
+        }
+        annotations = {
+          prometheus_io_scrape = "true"
+          prometheus_io_port   = "11434"
         }
       }
       spec {
@@ -223,12 +472,23 @@ resource "kubernetes_deployment_v1" "ollama_ryzen" {
           }
         }
 
+        init_container {
+          name    = "init-exporter-packages"
+          image   = "python:3.11-slim"
+          command = ["pip", "install", "--target=/packages", "--no-cache-dir", "--quiet",
+                     "fastapi", "uvicorn", "httpx", "prometheus_client"]
+          volume_mount {
+            name       = "exporter-packages"
+            mount_path = "/packages"
+          }
+        }
+
         container {
           name  = "ollama"
           image = "ollama/ollama"
 
           port {
-            container_port = 11434
+            container_port = 11435
           }
 
           env {
@@ -241,7 +501,7 @@ resource "kubernetes_deployment_v1" "ollama_ryzen" {
           }
           env {
             name  = "OLLAMA_HOST"
-            value = "0.0.0.0"
+            value = "0.0.0.0:11435"
           }
           env {
             name  = "OLLAMA_NUM_GPU"
@@ -261,11 +521,11 @@ resource "kubernetes_deployment_v1" "ollama_ryzen" {
           }
           env {
             name  = "OLLAMA_NUM_PARALLEL"
-            value = "4"
+            value = "1"
           }
           env {
             name  = "OLLAMA_MAX_LOADED_MODELS"
-            value = "3"
+            value = "1"
           }
 
           resources {
@@ -283,6 +543,41 @@ resource "kubernetes_deployment_v1" "ollama_ryzen" {
           }
         }
 
+        container {
+          name    = "ollama-metrics"
+          image   = "python:3.11-slim"
+          command = ["python3", "/exporter/exporter.py"]
+
+          port {
+            container_port = 11434
+          }
+
+          env {
+            name  = "OLLAMA_HOST"
+            value = "http://localhost:11435"
+          }
+
+          env {
+            name  = "PORT"
+            value = "11434"
+          }
+
+          env {
+            name  = "PYTHONPATH"
+            value = "/packages"
+          }
+
+          volume_mount {
+            name       = "exporter-packages"
+            mount_path = "/packages"
+          }
+
+          volume_mount {
+            name       = "exporter-script"
+            mount_path = "/exporter"
+          }
+        }
+
         volume {
           name = "host-root"
           host_path {
@@ -294,6 +589,18 @@ resource "kubernetes_deployment_v1" "ollama_ryzen" {
           name = "ollama-models"
           host_path {
             path = "/var/lib/rancher/ollama/models"
+          }
+        }
+
+        volume {
+          name = "exporter-packages"
+          empty_dir {}
+        }
+
+        volume {
+          name = "exporter-script"
+          config_map {
+            name = kubernetes_config_map.ollama_exporter_script.metadata.0.name
           }
         }
       }

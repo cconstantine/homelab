@@ -103,6 +103,11 @@ resource "kubernetes_stateful_set" "chat" {
               }
             }
           }
+          env {
+            name  = "AIOHTTP_CLIENT_ALLOW_REDIRECTS"
+            value = "True"
+          }
+
           volume_mount {
             name       = "chat-data"
             mount_path = "/app/backend/data"

@@ -41,6 +41,23 @@ resource "kubernetes_config_map" "tegra_soc0" {
   }
 }
 
+resource "kubernetes_config_map" "tegra_device_plugin_config" {
+  metadata {
+    name      = "tegra-device-plugin-config"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+  }
+  data = {
+    "config.yaml" = <<-EOF
+      version: v1
+      sharing:
+        timeSlicing:
+          resources:
+          - name: nvidia.com/gpu
+            replicas: 2
+    EOF
+  }
+}
+
 resource "kubernetes_daemonset" "nvidia_device_plugin_tegra" {
   metadata {
     name      = "nvidia-device-plugin-tegra"
@@ -76,6 +93,7 @@ resource "kubernetes_daemonset" "nvidia_device_plugin_tegra" {
         container {
           name  = "nvidia-device-plugin"
           image = "nvcr.io/nvidia/k8s-device-plugin:v0.14.5"
+          args  = ["--config-file", "/config/config.yaml"]
 
           security_context {
             privileged = true
@@ -95,6 +113,12 @@ resource "kubernetes_daemonset" "nvidia_device_plugin_tegra" {
           volume_mount {
             name       = "nvidia-csv"
             mount_path = "/etc/nvidia-container-runtime/host-files-for-container.d"
+            read_only  = true
+          }
+
+          volume_mount {
+            name       = "plugin-config"
+            mount_path = "/config"
             read_only  = true
           }
         }
@@ -117,6 +141,13 @@ resource "kubernetes_daemonset" "nvidia_device_plugin_tegra" {
           name = "nvidia-csv"
           host_path {
             path = "/etc/nvidia-container-runtime/host-files-for-container.d"
+          }
+        }
+
+        volume {
+          name = "plugin-config"
+          config_map {
+            name = kubernetes_config_map.tegra_device_plugin_config.metadata.0.name
           }
         }
       }

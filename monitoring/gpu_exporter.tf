@@ -11,46 +11,63 @@ resource "kubernetes_config_map" "gpu_exporter_script" {
 
       logging.basicConfig(level=logging.INFO)
 
-      gpu_util  = Gauge('jetson_gpu_utilization',     'GPU utilization 0-1')
-      cpu_util  = Gauge('jetson_cpu_utilization',     'CPU utilization 0-1',  ['cpu'])
-      temp      = Gauge('jetson_temperature_celsius', 'Temperature',           ['sensor'])
-      power     = Gauge('jetson_power_milliwatts',    'Power consumption',     ['rail'])
-      fan       = Gauge('jetson_fan',                 'Fan metrics',           ['fan', 'unit'])
+      STALE_POLLS = 12  # ~60s at 5s interval; reconnect if data is identical this many times in a row
+
+      gpu_util  = Gauge("jetson_gpu_utilization",     "GPU utilization 0-1")
+      cpu_util  = Gauge("jetson_cpu_utilization",     "CPU utilization 0-1",  ["cpu"])
+      temp      = Gauge("jetson_temperature_celsius", "Temperature",           ["sensor"])
+      power     = Gauge("jetson_power_milliwatts",    "Power consumption",     ["rail"])
+      fan       = Gauge("jetson_fan",                 "Fan metrics",           ["fan", "unit"])
 
       def update(jetson):
           stats = jetson.stats
-          if 'GPU' in stats:
-              gpu_util.set(stats['GPU'] / 100.0)
+          if "GPU" in stats:
+              gpu_util.set(stats["GPU"] / 100.0)
           for k, v in stats.items():
-              if k.startswith('CPU') and isinstance(v, (int, float)):
+              if k.startswith("CPU") and isinstance(v, (int, float)):
                   cpu_util.labels(cpu=k).set(v / 100.0)
           for name, data in jetson.temperature.items():
-              temp.labels(sensor=name).set(data['temp'])
+              temp.labels(sensor=name).set(data["temp"])
           for name, data in jetson.power.items():
               if isinstance(data, dict):
-                  power.labels(rail=name).set(data.get('power', data.get('cur', 0)))
+                  power.labels(rail=name).set(data.get("power", data.get("cur", 0)))
           for name, data in jetson.fan.items():
               if not isinstance(data, dict):
                   continue
-              if data.get('speed'):
-                  fan.labels(fan=name, unit='speed_ratio').set(data['speed'][0] / 100.0)
-              if data.get('rpm'):
-                  fan.labels(fan=name, unit='rpm').set(data['rpm'][0])
+              if data.get("speed"):
+                  fan.labels(fan=name, unit="speed_ratio").set(data["speed"][0] / 100.0)
+              if data.get("rpm"):
+                  fan.labels(fan=name, unit="rpm").set(data["rpm"][0])
+          snapshot = tuple(sorted(
+              (k, v) for k, v in stats.items()
+              if (k.startswith("CPU") or k == "GPU") and isinstance(v, (int, float))
+          ))
+          return snapshot
 
       start_http_server(9835)
-      logging.info('listening on :9835')
+      logging.info("listening on :9835")
       while True:
           try:
               with jtop() as jetson:
-                  logging.info('connected to jtop')
+                  logging.info("connected to jtop")
+                  last_snapshot = None
+                  stale_count = 0
                   while jetson.ok():
                       try:
-                          update(jetson)
+                          snapshot = update(jetson)
+                          if snapshot == last_snapshot:
+                              stale_count += 1
+                              if stale_count >= STALE_POLLS:
+                                  logging.warning(f"jtop data unchanged for {stale_count} polls, reconnecting")
+                                  break
+                          else:
+                              last_snapshot = snapshot
+                              stale_count = 0
                       except Exception as e:
-                          logging.error(f'update: {e}')
+                          logging.error(f"update: {e}")
                       time.sleep(5)
           except JtopException as e:
-              logging.error(f'jtop: {e}, retry in 10s')
+              logging.error(f"jtop: {e}, retry in 10s")
               time.sleep(10)
       PYTHON
   }
