@@ -9,6 +9,9 @@ terraform {
     pihole = {
       source = "ryanwholey/pihole"
     }
+    tls = {
+      source = "hashicorp/tls"
+    }
   }
   backend "kubernetes" {
     secret_suffix = "state"

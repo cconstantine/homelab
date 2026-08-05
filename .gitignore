@@ -6,3 +6,6 @@
 
 .env
 .envrc
+
+park-kubeconfig*
+park-certs*
