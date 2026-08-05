@@ -155,6 +155,23 @@ resource "kubernetes_daemonset" "nvidia_device_plugin_tegra" {
   }
 }
 
+resource "kubernetes_config_map" "discrete_device_plugin_config" {
+  metadata {
+    name      = "discrete-device-plugin-config"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+  }
+  data = {
+    "config.yaml" = <<-EOF
+      version: v1
+      sharing:
+        timeSlicing:
+          resources:
+          - name: nvidia.com/gpu
+            replicas: 2
+    EOF
+  }
+}
+
 resource "kubernetes_daemonset" "nvidia_device_plugin_discrete" {
   metadata {
     name      = "nvidia-device-plugin-discrete"
@@ -192,6 +209,7 @@ resource "kubernetes_daemonset" "nvidia_device_plugin_discrete" {
         container {
           name  = "nvidia-device-plugin"
           image = "nvcr.io/nvidia/k8s-device-plugin:v0.14.5"
+          args  = ["--config-file", "/config/config.yaml"]
 
           security_context {
             privileged = true
@@ -201,12 +219,25 @@ resource "kubernetes_daemonset" "nvidia_device_plugin_discrete" {
             name       = "device-plugin"
             mount_path = "/var/lib/kubelet/device-plugins"
           }
+
+          volume_mount {
+            name       = "plugin-config"
+            mount_path = "/config"
+            read_only  = true
+          }
         }
 
         volume {
           name = "device-plugin"
           host_path {
             path = "/var/lib/kubelet/device-plugins"
+          }
+        }
+
+        volume {
+          name = "plugin-config"
+          config_map {
+            name = kubernetes_config_map.discrete_device_plugin_config.metadata.0.name
           }
         }
       }
