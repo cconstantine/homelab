@@ -41,7 +41,9 @@ resource "kubernetes_stateful_set" "srvr" {
       spec {
         container {
           name  = "srvr"
-          image = "ghcr.io/twinkle-astronomy/srvr:0.1.6"
+          image = "ghcr.io/twinkle-astronomy/srvr:latest"
+          image_pull_policy = "Always"
+
 
           env {
             name  = "PROMETHEUS_URL"
@@ -54,6 +56,10 @@ resource "kubernetes_stateful_set" "srvr" {
           env {
             name  = "TZ"
             value = "America/Los_Angeles"
+          }
+          env {
+            name  = "IMAGE_SIGNATURE_SECRET"
+            value = "homelab"
           }
 
           volume_mount {
