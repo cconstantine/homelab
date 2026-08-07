@@ -10,8 +10,3 @@ variable "api_server_ip" {
   default     = "192.168.8.130"
 }
 
-variable "storage_quota" {
-  description = "requests.storage cap for the claude-park namespace."
-  type        = string
-  default     = "400Gi"
-}
