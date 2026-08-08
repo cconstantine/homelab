@@ -22,6 +22,18 @@ resource "kubernetes_labels" "ryzen_gpu" {
   }
 }
 
+resource "kubernetes_labels" "homelab_gpu" {
+  api_version = "v1"
+  kind        = "Node"
+  metadata {
+    name = "homelab"
+  }
+  labels = {
+    "nvidia.com/gpu.present" = "true"
+    "nvidia.com/gpu.type"    = "discrete"
+  }
+}
+
 resource "kubernetes_runtime_class_v1" "nvidia" {
   metadata {
     name = "nvidia"

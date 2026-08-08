@@ -1,6 +1,6 @@
 locals {
-  nfs_server        = "homelab.local"
-  nfs_storage_class = "nfs-storage"
+  local_storage_class = "local-storage"
+  storage_node        = "homelab"
 }
 
 resource "kubernetes_service" "jellyfin" {
@@ -19,15 +19,22 @@ resource "kubernetes_service" "jellyfin" {
   }
 }
 
-# Note: the "nfs-storage" StorageClass is already created by the frigate
-# module (kubernetes.io/no-provisioner, Retain). It's a cluster-scoped
-# object, so it's reused by name here rather than declared again.
+# Note: the "local-storage" StorageClass is already created by the
+# monitoring module (kubernetes.io/no-provisioner, WaitForFirstConsumer).
+# It's a cluster-scoped object, so it's reused by name here rather than
+# declared again.
+#
+# These are "local" volumes (not NFS): jellyfin now runs on homelab itself
+# (see the node_selector below), so these paths are just plain directories
+# on its own disk, bind-mounted in directly. Same underlying paths that
+# used to be NFS-exported to jellyfin when it ran on ryzen - no data
+# migration involved, just a different mount mechanism.
 
 resource "kubernetes_persistent_volume" "jellyfin_config" {
   metadata {
     name = "jellyfin-config"
     labels = {
-      type = "nfs"
+      type = "local"
       app  = "jellyfin"
       use  = "config"
     }
@@ -36,15 +43,25 @@ resource "kubernetes_persistent_volume" "jellyfin_config" {
     capacity = {
       storage = "10Gi"
     }
-    access_modes       = ["ReadWriteMany"]
-    storage_class_name = local.nfs_storage_class
+    access_modes                     = ["ReadWriteOnce"]
+    storage_class_name               = local.local_storage_class
+    persistent_volume_reclaim_policy = "Retain"
     persistent_volume_source {
-      nfs {
-        server = local.nfs_server
-        path   = "/storage/jellyfin/config"
+      local {
+        path = "/storage/jellyfin/config"
       }
     }
-    persistent_volume_reclaim_policy = "Retain"
+    node_affinity {
+      required {
+        node_selector_term {
+          match_expressions {
+            key      = "kubernetes.io/hostname"
+            operator = "In"
+            values   = [local.storage_node]
+          }
+        }
+      }
+    }
   }
 }
 
@@ -52,7 +69,7 @@ resource "kubernetes_persistent_volume" "jellyfin_movies" {
   metadata {
     name = "jellyfin-movies"
     labels = {
-      type = "nfs"
+      type = "local"
       app  = "jellyfin"
       use  = "movies"
     }
@@ -61,15 +78,25 @@ resource "kubernetes_persistent_volume" "jellyfin_movies" {
     capacity = {
       storage = "1Ti"
     }
-    access_modes       = ["ReadWriteMany"]
-    storage_class_name = local.nfs_storage_class
+    access_modes                     = ["ReadWriteOnce"]
+    storage_class_name               = local.local_storage_class
+    persistent_volume_reclaim_policy = "Retain"
     persistent_volume_source {
-      nfs {
-        server = local.nfs_server
-        path   = "/storage/jellyfin/media/movies"
+      local {
+        path = "/storage/jellyfin/media/movies"
       }
     }
-    persistent_volume_reclaim_policy = "Retain"
+    node_affinity {
+      required {
+        node_selector_term {
+          match_expressions {
+            key      = "kubernetes.io/hostname"
+            operator = "In"
+            values   = [local.storage_node]
+          }
+        }
+      }
+    }
   }
 }
 
@@ -77,7 +104,7 @@ resource "kubernetes_persistent_volume" "jellyfin_tv" {
   metadata {
     name = "jellyfin-tv"
     labels = {
-      type = "nfs"
+      type = "local"
       app  = "jellyfin"
       use  = "tv"
     }
@@ -86,15 +113,25 @@ resource "kubernetes_persistent_volume" "jellyfin_tv" {
     capacity = {
       storage = "1Ti"
     }
-    access_modes       = ["ReadWriteMany"]
-    storage_class_name = local.nfs_storage_class
+    access_modes                     = ["ReadWriteOnce"]
+    storage_class_name               = local.local_storage_class
+    persistent_volume_reclaim_policy = "Retain"
     persistent_volume_source {
-      nfs {
-        server = local.nfs_server
-        path   = "/storage/jellyfin/media/tv"
+      local {
+        path = "/storage/jellyfin/media/tv"
       }
     }
-    persistent_volume_reclaim_policy = "Retain"
+    node_affinity {
+      required {
+        node_selector_term {
+          match_expressions {
+            key      = "kubernetes.io/hostname"
+            operator = "In"
+            values   = [local.storage_node]
+          }
+        }
+      }
+    }
   }
 }
 
@@ -121,7 +158,8 @@ resource "kubernetes_stateful_set" "jellyfin" {
       }
       spec {
         node_selector = {
-          "nvidia.com/gpu.type" = "discrete"
+          "nvidia.com/gpu.type"    = "discrete"
+          "kubernetes.io/hostname" = local.storage_node
         }
         runtime_class_name = "nvidia"
 
@@ -190,14 +228,14 @@ resource "kubernetes_stateful_set" "jellyfin" {
       metadata {
         name = "jellyfin-config"
         labels = {
-          type = "nfs"
+          type = "local"
           app  = "jellyfin"
           use  = "config"
         }
       }
       spec {
-        access_modes       = ["ReadWriteMany"]
-        storage_class_name = local.nfs_storage_class
+        access_modes       = ["ReadWriteOnce"]
+        storage_class_name = local.local_storage_class
         resources {
           requests = {
             storage = "10Gi"
@@ -205,7 +243,7 @@ resource "kubernetes_stateful_set" "jellyfin" {
         }
         selector {
           match_labels = {
-            type = "nfs"
+            type = "local"
             app  = "jellyfin"
             use  = "config"
           }
@@ -217,14 +255,14 @@ resource "kubernetes_stateful_set" "jellyfin" {
       metadata {
         name = "jellyfin-movies"
         labels = {
-          type = "nfs"
+          type = "local"
           app  = "jellyfin"
           use  = "movies"
         }
       }
       spec {
-        access_modes       = ["ReadWriteMany"]
-        storage_class_name = local.nfs_storage_class
+        access_modes       = ["ReadWriteOnce"]
+        storage_class_name = local.local_storage_class
         resources {
           requests = {
             storage = "1Ti"
@@ -232,7 +270,7 @@ resource "kubernetes_stateful_set" "jellyfin" {
         }
         selector {
           match_labels = {
-            type = "nfs"
+            type = "local"
             app  = "jellyfin"
             use  = "movies"
           }
@@ -244,14 +282,14 @@ resource "kubernetes_stateful_set" "jellyfin" {
       metadata {
         name = "jellyfin-tv"
         labels = {
-          type = "nfs"
+          type = "local"
           app  = "jellyfin"
           use  = "tv"
         }
       }
       spec {
-        access_modes       = ["ReadWriteMany"]
-        storage_class_name = local.nfs_storage_class
+        access_modes       = ["ReadWriteOnce"]
+        storage_class_name = local.local_storage_class
         resources {
           requests = {
             storage = "1Ti"
@@ -259,7 +297,7 @@ resource "kubernetes_stateful_set" "jellyfin" {
         }
         selector {
           match_labels = {
-            type = "nfs"
+            type = "local"
             app  = "jellyfin"
             use  = "tv"
           }

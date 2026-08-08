@@ -453,7 +453,8 @@ resource "kubernetes_deployment_v1" "ollama_ryzen" {
       }
       spec {
         node_selector = {
-          "nvidia.com/gpu.type" = "discrete"
+          "nvidia.com/gpu.type"    = "discrete"
+          "kubernetes.io/hostname" = "ryzen"
         }
 
         runtime_class_name = "nvidia"
