@@ -179,6 +179,35 @@ resource "kubernetes_ingress_v1" "radarr" {
         }
       }
     }
+
+  }
+}
+
+resource "kubernetes_ingress_v1" "radarr_tls" {
+  metadata {
+    name      = "radarr-tls"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.middlewares" = "cert-manager-redirect-https@kubernetescrd,cert-manager-hsts-headers@kubernetescrd"
+    }
+  }
+
+  spec {
+    rule {
+      host = "radarr.${var.tls_domain}"
+      http {
+        path {
+          backend {
+            service {
+              name = kubernetes_service.radarr.metadata.0.name
+              port {
+                number = 7878
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 

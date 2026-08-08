@@ -332,6 +332,37 @@ resource "kubernetes_ingress_v1" "jellyfin" {
   }
 }
 
+# Split from the .homelab ingress above so the redirect/HSTS middlewares
+# (which force HTTPS) apply only to the public constantlee.us hostname -
+# Traefik applies middleware annotations to the whole Ingress, not per rule.
+resource "kubernetes_ingress_v1" "jellyfin_tls" {
+  metadata {
+    name      = "jellyfin-tls"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.middlewares" = "cert-manager-redirect-https@kubernetescrd,cert-manager-hsts-headers@kubernetescrd"
+    }
+  }
+
+  spec {
+    rule {
+      host = "jellyfin.${var.tls_domain}"
+      http {
+        path {
+          backend {
+            service {
+              name = kubernetes_service.jellyfin.metadata.0.name
+              port {
+                number = 8096
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
 module "jellyfin_dns" {
   source = "../pi-hole-service"
 

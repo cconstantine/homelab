@@ -70,6 +70,35 @@ resource "kubernetes_ingress_v1" "veil" {
         }
       }
     }
+
+  }
+}
+
+resource "kubernetes_ingress_v1" "veil_tls" {
+  metadata {
+    name      = "veil-ingress-tls"
+    namespace = kubernetes_namespace.veil.metadata.0.name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.middlewares" = "cert-manager-redirect-https@kubernetescrd,cert-manager-hsts-headers@kubernetescrd"
+    }
+  }
+
+  spec {
+    rule {
+      host = "veil.${var.tls_domain}"
+      http {
+        path {
+          backend {
+            service {
+              name = kubernetes_service.veil.metadata.0.name
+              port {
+                number = 80
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 

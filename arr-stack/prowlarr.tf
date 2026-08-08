@@ -155,6 +155,35 @@ resource "kubernetes_ingress_v1" "prowlarr" {
         }
       }
     }
+
+  }
+}
+
+resource "kubernetes_ingress_v1" "prowlarr_tls" {
+  metadata {
+    name      = "prowlarr-tls"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.middlewares" = "cert-manager-redirect-https@kubernetescrd,cert-manager-hsts-headers@kubernetescrd"
+    }
+  }
+
+  spec {
+    rule {
+      host = "prowlarr.${var.tls_domain}"
+      http {
+        path {
+          backend {
+            service {
+              name = kubernetes_service.prowlarr.metadata.0.name
+              port {
+                number = 9696
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 

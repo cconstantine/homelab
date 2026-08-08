@@ -242,6 +242,35 @@ resource "kubernetes_ingress_v1" "prometheus_ingress" {
         }
       }
     }
+
+  }
+}
+
+resource "kubernetes_ingress_v1" "prometheus_ingress_tls" {
+  metadata {
+    name      = "prometheus-ingress-tls"
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.middlewares" = "cert-manager-redirect-https@kubernetescrd,cert-manager-hsts-headers@kubernetescrd"
+    }
+  }
+
+  spec {
+    rule {
+      host = "prometheus.${var.tls_domain}"
+      http {
+        path {
+          backend {
+            service {
+              name = kubernetes_service.prometheus.metadata.0.name
+              port {
+                number = 9090
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 

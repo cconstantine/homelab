@@ -261,6 +261,35 @@ resource "kubernetes_ingress_v1" "frigate" {
         }
       }
     }
+
+  }
+}
+
+resource "kubernetes_ingress_v1" "frigate_tls" {
+  metadata {
+    name      = "frigate-tls"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.middlewares" = "cert-manager-redirect-https@kubernetescrd,cert-manager-hsts-headers@kubernetescrd"
+    }
+  }
+
+  spec {
+    rule {
+      host = "frigate.${var.tls_domain}"
+      http {
+        path {
+          backend {
+            service {
+              name = kubernetes_service.frigate.metadata.0.name
+              port {
+                number = 5000
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 

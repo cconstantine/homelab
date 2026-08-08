@@ -110,6 +110,35 @@ resource "kubernetes_ingress_v1" "grafana_ingress" {
         }
       }
     }
+
+  }
+}
+
+resource "kubernetes_ingress_v1" "grafana_ingress_tls" {
+  metadata {
+    name      = "grafana-ingress-tls"
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.middlewares" = "cert-manager-redirect-https@kubernetescrd,cert-manager-hsts-headers@kubernetescrd"
+    }
+  }
+
+  spec {
+    rule {
+      host = "grafana.${var.tls_domain}"
+      http {
+        path {
+          backend {
+            service {
+              name = kubernetes_service.grafana.metadata.0.name
+              port {
+                number = 3000
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 

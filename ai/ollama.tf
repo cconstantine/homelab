@@ -20,6 +20,35 @@ resource "kubernetes_ingress_v1" "ollama" {
         }
       }
     }
+
+  }
+}
+
+resource "kubernetes_ingress_v1" "ollama_tls" {
+  metadata {
+    name      = "ollama-tls"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.middlewares" = "cert-manager-redirect-https@kubernetescrd,cert-manager-hsts-headers@kubernetescrd"
+    }
+  }
+
+  spec {
+    rule {
+      host = "ollama.${var.tls_domain}"
+      http {
+        path {
+          backend {
+            service {
+              name = kubernetes_service_v1.ollama.metadata.0.name
+              port {
+                number = 11434
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 
@@ -170,6 +199,35 @@ resource "kubernetes_ingress_v1" "ollama_ryzen" {
         }
       }
     }
+
+  }
+}
+
+resource "kubernetes_ingress_v1" "ollama_ryzen_tls" {
+  metadata {
+    name      = "ollama-ryzen-tls"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.middlewares" = "cert-manager-redirect-https@kubernetescrd,cert-manager-hsts-headers@kubernetescrd"
+    }
+  }
+
+  spec {
+    rule {
+      host = "ollama-ryzen.${var.tls_domain}"
+      http {
+        path {
+          backend {
+            service {
+              name = kubernetes_service_v1.ollama_ryzen.metadata.0.name
+              port {
+                number = 11434
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 
@@ -198,6 +256,35 @@ resource "kubernetes_ingress_v1" "ollama_xavier" {
   spec {
     rule {
       host = "ollama-xavier.${var.domain}"
+      http {
+        path {
+          backend {
+            service {
+              name = kubernetes_service_v1.ollama_xavier.metadata.0.name
+              port {
+                number = 11434
+              }
+            }
+          }
+        }
+      }
+    }
+
+  }
+}
+
+resource "kubernetes_ingress_v1" "ollama_xavier_tls" {
+  metadata {
+    name      = "ollama-xavier-tls"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.middlewares" = "cert-manager-redirect-https@kubernetescrd,cert-manager-hsts-headers@kubernetescrd"
+    }
+  }
+
+  spec {
+    rule {
+      host = "ollama-xavier.${var.tls_domain}"
       http {
         path {
           backend {

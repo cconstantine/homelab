@@ -179,6 +179,35 @@ resource "kubernetes_ingress_v1" "sonarr" {
         }
       }
     }
+
+  }
+}
+
+resource "kubernetes_ingress_v1" "sonarr_tls" {
+  metadata {
+    name      = "sonarr-tls"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.middlewares" = "cert-manager-redirect-https@kubernetescrd,cert-manager-hsts-headers@kubernetescrd"
+    }
+  }
+
+  spec {
+    rule {
+      host = "sonarr.${var.tls_domain}"
+      http {
+        path {
+          backend {
+            service {
+              name = kubernetes_service.sonarr.metadata.0.name
+              port {
+                number = 8989
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 

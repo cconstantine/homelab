@@ -1,4 +1,5 @@
 module "monitoring" {
-  source = "./monitoring"
-  domain = "homelab"
+  source     = "./monitoring"
+  domain     = "homelab"
+  tls_domain = "constantlee.us"
 }

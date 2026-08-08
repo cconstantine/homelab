@@ -12,6 +12,12 @@ terraform {
     tls = {
       source = "hashicorp/tls"
     }
+    cloudflare = {
+      source = "cloudflare/cloudflare"
+    }
+    kubectl = {
+      source = "gavinbunney/kubectl"
+    }
   }
   backend "kubernetes" {
     secret_suffix = "state"
@@ -25,6 +31,10 @@ provider "pihole" {
   password = module.pi_hole.password
 }
 
+provider "cloudflare" {
+  api_token = var.cloudflare_api_token
+}
+
 provider "kubernetes" {
   config_path    = "~/.kube/config"
   config_context = "default"
@@ -35,4 +45,9 @@ provider "helm" {
     config_path    = "~/.kube/config"
     config_context = "default"
   }
+}
+
+provider "kubectl" {
+  config_path    = "~/.kube/config"
+  config_context = "default"
 }

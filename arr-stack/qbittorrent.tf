@@ -187,6 +187,35 @@ resource "kubernetes_ingress_v1" "qbittorrent" {
         }
       }
     }
+
+  }
+}
+
+resource "kubernetes_ingress_v1" "qbittorrent_tls" {
+  metadata {
+    name      = "qbittorrent-tls"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.middlewares" = "cert-manager-redirect-https@kubernetescrd,cert-manager-hsts-headers@kubernetescrd"
+    }
+  }
+
+  spec {
+    rule {
+      host = "qbittorrent.${var.tls_domain}"
+      http {
+        path {
+          backend {
+            service {
+              name = kubernetes_service.qbittorrent.metadata.0.name
+              port {
+                number = 8080
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 

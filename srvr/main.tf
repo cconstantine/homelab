@@ -108,6 +108,35 @@ resource "kubernetes_ingress_v1" "srvr" {
         }
       }
     }
+
+  }
+}
+
+resource "kubernetes_ingress_v1" "srvr_tls" {
+  metadata {
+    name      = "srvr-tls"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.middlewares" = "cert-manager-redirect-https@kubernetescrd,cert-manager-hsts-headers@kubernetescrd"
+    }
+  }
+
+  spec {
+    rule {
+      host = "srvr.${var.tls_domain}"
+      http {
+        path {
+          backend {
+            service {
+              name = kubernetes_service.srvr.metadata.0.name
+              port {
+                number = 8080
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
 
