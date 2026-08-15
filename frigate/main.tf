@@ -108,6 +108,7 @@ resource "kubernetes_stateful_set" "frigate" {
       spec {
         node_selector = {
           "nvidia.com/gpu.present" = "true"
+          "kubernetes.io/hostname" = "xavier"
         }
         runtime_class_name = "nvidia"
 
