@@ -22,7 +22,11 @@ resource "kubernetes_deployment" "smokeping_exporter" {
         container {
           name    = "smokeping-exporter"
           image   = "quay.io/superq/smokeping-prober:latest"
-          command = ["smokeping_prober", "google.com"]
+          command = [
+            "smokeping_prober",
+            "--buckets=0.001,0.002,0.004,0.006,0.008,0.010,0.012,0.014,0.016,0.018,0.020,0.025,0.030,0.040,0.050,0.075,0.100,0.150,0.200,0.300,0.500,1.000,2.000",
+            "google.com",
+          ]
           port {
             container_port = 9374
             protocol       = "TCP"
