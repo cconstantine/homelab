@@ -1,13 +1,13 @@
 # Cloudflare's API has no "purchase a domain" operation; this only manages
 # renewal/lock/privacy settings for a domain already registered in the account.
 # Buy constantlee.us via the Cloudflare dashboard first, then apply.
-resource "cloudflare_registrar_domain" "this" {
-  account_id  = var.account_id
-  domain_name = var.domain
-  auto_renew  = true
-  locked      = true
-  privacy     = true
-}
+# resource "cloudflare_registrar_domain" "this" {
+#   account_id  = var.account_id
+#   domain_name = var.domain
+#   auto_renew  = true
+#   locked      = true
+#   privacy     = false
+# }
 
 data "cloudflare_zone" "this" {
   filter = {

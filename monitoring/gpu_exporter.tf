@@ -280,6 +280,20 @@ resource "kubernetes_daemonset" "gpu_exporter_discrete" {
             value = "/packages"
           }
 
+          # Without these, the nvidia-container-runtime has no signal to inject
+          # libnvidia-ml.so into the container (pynvml fails with "NVML Shared
+          # Library Not Found"), even with runtime_class_name = "nvidia" set.
+          # No nvidia.com/gpu resource request needed - this only reads NVML,
+          # it doesn't need a device-plugin-allocated GPU slot.
+          env {
+            name  = "NVIDIA_VISIBLE_DEVICES"
+            value = "all"
+          }
+          env {
+            name  = "NVIDIA_DRIVER_CAPABILITIES"
+            value = "all"
+          }
+
           port {
             container_port = 9835
             protocol       = "TCP"
