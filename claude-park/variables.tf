@@ -1,3 +1,9 @@
+variable "name" {
+  description = "Name of this park instance: used for the namespace, TLS subject CNs, and the daemon-TLS secret. Lets multiple LLM coding session systems each get their own isolated namespace + credentials from this same module."
+  type        = string
+  default     = "claude-park"
+}
+
 variable "node_ips" {
   description = "IPs of the k3s nodes that host parks (homelab: control-plane, secondary; ryzen: primary worker). Covered by the docker daemon server cert's SANs so the Mac can dial either node."
   type        = list(string)

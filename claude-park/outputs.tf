@@ -1,29 +1,29 @@
 # Extract with:
 #   terraform output -raw claude_park_kubeconfig > ~/park-kubeconfig.yaml && chmod 600 ~/park-kubeconfig.yaml
 output "claude_park_kubeconfig" {
-  description = "kubeconfig scoped to the claude-park namespace via the park ServiceAccount's token."
+  description = "kubeconfig scoped to the park's namespace via the park ServiceAccount's token."
   sensitive   = true
   value = yamlencode({
     apiVersion      = "v1"
     kind            = "Config"
-    current-context = "claude-park"
+    current-context = var.name
     clusters = [{
-      name = "claude-park"
+      name = var.name
       cluster = {
         server                     = "https://${var.api_server_ip}:6443"
         certificate-authority-data = base64encode(kubernetes_secret.park_token.data["ca.crt"])
       }
     }]
     contexts = [{
-      name = "claude-park"
+      name = var.name
       context = {
-        cluster   = "claude-park"
-        user      = "park"
+        cluster   = var.name
+        user      = var.name
         namespace = kubernetes_namespace.claude_park.metadata.0.name
       }
     }]
     users = [{
-      name = "park"
+      name = var.name
       user = {
         token = kubernetes_secret.park_token.data["token"]
       }

@@ -13,8 +13,8 @@ resource "tls_self_signed_cert" "ca" {
   validity_period_hours = 87600 # 10 years; rotation is a manual chore
 
   subject {
-    common_name  = "claude-park CA"
-    organization = "claude-park"
+    common_name  = "${var.name} CA"
+    organization = var.name
   }
 
   allowed_uses = [
@@ -34,7 +34,7 @@ resource "tls_cert_request" "server" {
   private_key_pem = tls_private_key.server.private_key_pem
 
   subject {
-    common_name = "claude-park-daemon"
+    common_name = "${var.name}-daemon"
   }
 
   dns_names    = ["localhost"]
@@ -63,7 +63,7 @@ resource "tls_cert_request" "client" {
   private_key_pem = tls_private_key.client.private_key_pem
 
   subject {
-    common_name = "claude-park-client"
+    common_name = "${var.name}-client"
   }
 }
 
@@ -85,7 +85,7 @@ resource "tls_locally_signed_cert" "client" {
 # not written here (see brief, scope boundary).
 resource "kubernetes_secret" "claude_park_daemon_tls" {
   metadata {
-    name      = "claude-park-daemon-tls"
+    name      = "${var.name}-daemon-tls"
     namespace = kubernetes_namespace.claude_park.metadata.0.name
   }
 

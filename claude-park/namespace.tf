@@ -1,6 +1,6 @@
 resource "kubernetes_namespace" "claude_park" {
   metadata {
-    name = "claude-park"
+    name = var.name
     labels = {
       "pod-security.kubernetes.io/enforce" = "privileged"
     }
