@@ -2,7 +2,7 @@ resource "github_repository" "homelab" {
   name        = "homelab"
   description = ""
 
-  visibility = "public"
+  visibility = "private"
   auto_init  = true
 }
 
