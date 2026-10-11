@@ -12,12 +12,16 @@
 module "smelt" {
   source = "git::https://github.com/cconstantine/smelt.git//terraform/smelt?ref=main"
 
-  # ref=main needs the terraform-module PR merged; until then, point it at
-  # that branch. Both GHCR tags below are pushed already (the workflow builds
-  # from branches, not just main).
   image         = "ghcr.io/cconstantine/smelt:c0a089794fc7"
   sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:c0a089794fc7"
 
-  domain   = "smelt.homelab"
-  base_url = "http://smelt.homelab" # no TLS at the ingress, as everywhere else here
+  # smelt.constantlee.us, a record of the globally-resolved domain every
+  # *.constantlee.us name has TLS under. The module's default base URL —
+  # `https://<domain>` — is therefore right here, unlike the `.homelab`
+  # services that terminate nothing.
+  #
+  # Previews stay off (they want a wildcard DNS record of their own and, for
+  # one-label TLS coverage, the apex domain as the preview domain). Setting
+  # `preview_domain = "constantlee.us"` turns them on when that's wanted.
+  domain = "smelt.constantlee.us"
 }
