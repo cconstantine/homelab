@@ -6,14 +6,18 @@
 # a k3d cluster (`terraform/test-cluster`), including smelt's own
 # real-cluster pod-lifecycle test.
 
-# The images are what smelt's publish-images workflow pushes to GHCR, tagged by
-# commit; updating smelt is changing these two tags and re-applying.
+# The images are what smelt's publish-images workflow pushes to GHCR. The
+# `:latest` tag tracks main, so this deploy follows smelt without tag edits:
+# `terraform plan && terraform apply` picks up whatever main built last. The
+# catch is that a moving tag doesn't make a running Deployment roll (its pod
+# template never changes and the pull policy is IfNotPresent), so a restarted
+# pod — or `kubectl rollout restart` — is what actually pulls the new image.
 
 module "smelt" {
   source = "git::https://github.com/cconstantine/smelt.git//terraform/smelt?ref=main"
 
-  image         = "ghcr.io/cconstantine/smelt:c0a089794fc7"
-  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:c0a089794fc7"
+  image         = "ghcr.io/cconstantine/smelt:latest"
+  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:latest"
 
   # smelt.constantlee.us, a record of the globally-resolved domain every
   # *.constantlee.us name has TLS under. The module's default base URL —
