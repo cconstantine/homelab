@@ -14,6 +14,17 @@ resource "kubernetes_persistent_volume_claim" "grafana_data" {
   }
 }
 
+resource "kubernetes_config_map" "grafana_datasources" {
+  metadata {
+    name      = "grafana-datasources"
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
+  }
+
+  data = {
+    "datasources.yaml" = file("${path.module}/config/grafana-datasources.yaml")
+  }
+}
+
 resource "kubernetes_deployment" "grafana" {
   timeouts {
     create = "2m"
@@ -36,6 +47,9 @@ resource "kubernetes_deployment" "grafana" {
         labels = {
           name = "grafana"
         }
+        annotations = {
+          "checksum/datasources" = sha1(file("${path.module}/config/grafana-datasources.yaml"))
+        }
       }
       spec {
         init_container {
@@ -50,15 +64,25 @@ resource "kubernetes_deployment" "grafana" {
         }
         container {
           name  = "grafana"
-          image = "grafana/grafana:10.1.9"
+          image = "grafana/grafana:13.2.4"
 
           volume_mount {
             mount_path = "/var/lib/grafana"
             name       = "grafana-data"
           }
+          volume_mount {
+            mount_path = "/etc/grafana/provisioning/datasources"
+            name       = "grafana-datasources"
+          }
           env {
             name  = "GF_AUTH_ANONYMOUS_ENABLED"
             value = "true"
+          }
+        }
+        volume {
+          name = "grafana-datasources"
+          config_map {
+            name = kubernetes_config_map.grafana_datasources.metadata.0.name
           }
         }
         volume {

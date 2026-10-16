@@ -27,6 +27,11 @@ module "smelt" {
   # Previews stay off (they want a wildcard DNS record of their own and, for
   # one-label TLS coverage, the apex domain as the preview domain). Setting
   preview_domain = "preview.smelt.constantlee.us"
-  domain = "smelt.constantlee.us"
-  
+  domain         = "smelt.constantlee.us"
+
+  # Traces to Tempo in the monitoring namespace, read in Grafana (Explore →
+  # Tempo → TraceQL, e.g. `{ resource.service.name = "smelt" }`).
+  extra_env = {
+    OTEL_EXPORTER_OTLP_ENDPOINT = module.monitoring.tempo_otlp_http_endpoint
+  }
 }
