@@ -3,6 +3,11 @@ variable "github_pat" {
   sensitive = true
 }
 
+variable "github_pat_smelt" {
+  type      = string
+  sensitive = true
+}
+
 variable "runner_platforms" {
   type    = list(string)
   default = ["amd64", "arm64", "armv7"]

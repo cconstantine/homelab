@@ -4,6 +4,19 @@ locals {
     arm64 = "arm64"
     armv7 = "arm64"
   }
+
+  runner_targets = merge(
+    { for p in var.runner_platforms : p => {
+      github_config_url    = "https://github.com/twinkle-astronomy/srvr"
+      github_config_secret = "arc-github-pat"
+      platform             = p
+    } },
+    { "smelt-amd64" = {
+      github_config_url    = "https://github.com/cconstantine/smelt"
+      github_config_secret = "arc-github-pat-smelt"
+      platform             = "amd64"
+    } }
+  )
 }
 
 resource "kubernetes_secret" "arc_github_pat" {
@@ -14,6 +27,17 @@ resource "kubernetes_secret" "arc_github_pat" {
 
   data = {
     github_token = var.github_pat
+  }
+}
+
+resource "kubernetes_secret" "arc_github_pat_smelt" {
+  metadata {
+    name      = "arc-github-pat-smelt"
+    namespace = kubernetes_namespace.arc_runners.metadata.0.name
+  }
+
+  data = {
+    github_token = var.github_pat_smelt
   }
 }
 
@@ -28,7 +52,7 @@ resource "helm_release" "arc_controller" {
 }
 
 resource "kubernetes_persistent_volume_claim" "arc_docker_data" {
-  for_each         = toset(var.runner_platforms)
+  for_each         = local.runner_targets
   wait_until_bound = false
   metadata {
     name      = "arc-docker-data-${each.key}"
@@ -46,25 +70,29 @@ resource "kubernetes_persistent_volume_claim" "arc_docker_data" {
 }
 
 resource "helm_release" "arc_runner_set" {
-  for_each   = toset(var.runner_platforms)
+  for_each   = local.runner_targets
   name       = "arc-runner-${each.key}"
   namespace  = kubernetes_namespace.arc_runners.metadata.0.name
   repository = "oci://ghcr.io/actions/actions-runner-controller-charts"
   chart      = "gha-runner-scale-set"
   version    = "0.14.0"
 
-  depends_on = [helm_release.arc_controller]
+  depends_on = [
+    helm_release.arc_controller,
+    kubernetes_secret.arc_github_pat,
+    kubernetes_secret.arc_github_pat_smelt,
+  ]
 
   values = [yamlencode({
-    githubConfigUrl    = "https://github.com/twinkle-astronomy/srvr"
-    githubConfigSecret = kubernetes_secret.arc_github_pat.metadata.0.name
+    githubConfigUrl    = each.value.github_config_url
+    githubConfigSecret = each.value.github_config_secret
     runnerScaleSetName = "arc-runner-${each.key}"
     minRunners         = 1
     maxRunners         = 1
     template = {
       spec = {
         nodeSelector = {
-          "kubernetes.io/arch" = local.runner_node_arch[each.key]
+          "kubernetes.io/arch" = local.runner_node_arch[each.value.platform]
         }
         initContainers = [
           {
@@ -79,7 +107,7 @@ resource "helm_release" "arc_runner_set" {
           merge(
             {
               name  = "dind"
-              image = each.key == "arm64" || each.key == "armv7" ? "docker:26-dind" : "docker:dind"
+              image = each.value.platform == "arm64" || each.value.platform == "armv7" ? "docker:26-dind" : "docker:dind"
               env = [{
                 name  = "DOCKER_GROUP_GID"
                 value = "123"
@@ -103,11 +131,11 @@ resource "helm_release" "arc_runner_set" {
                 { name = "dind-docker", mountPath = "/var/lib/docker" }
               ]
             },
-            each.key == "arm64" || each.key == "armv7" ? {
+            each.value.platform == "arm64" || each.value.platform == "armv7" ? {
               command = ["sh", "-c"]
-              args    = ["apk add --no-cache iptables-legacy && for cmd in iptables ip6tables iptables-save iptables-restore ip6tables-save ip6tables-restore; do ln -sf /usr/sbin/xtables-legacy-multi /usr/sbin/$cmd; done && exec dockerd-entrypoint.sh dockerd --host=unix:///var/run/docker.sock --group=123"]
-            } : {
-              args = ["dockerd", "--host=unix:///var/run/docker.sock", "--group=$(DOCKER_GROUP_GID)"]
+              args    = ["apk add --no-cache iptables-legacy && for cmd in iptables ip6tables iptables-save iptables-restore ip6tables-save ip6tables-restore; do ln -sf /usr/sbin/xtables-legacy-multi /usr/sbin/$cmd; done && exec dockerd-entrypoint.sh dockerd --host=unix:///var/run/docker.sock --group=123 --mtu=1450"]
+              } : {
+              args = ["dockerd", "--host=unix:///var/run/docker.sock", "--group=$(DOCKER_GROUP_GID)", "--mtu=1450"]
             }
           )
         ]
