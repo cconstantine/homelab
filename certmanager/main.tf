@@ -62,19 +62,16 @@ resource "kubectl_manifest" "wildcard_certificate" {
     apiVersion = "cert-manager.io/v1"
     kind       = "Certificate"
     metadata = {
-      name      = "wildcard-${replace(var.tls_domain, ".", "-")}"
+      name      = "wildcard-constantlee-us"
       namespace = kubernetes_namespace.cert_manager.metadata.0.name
     }
     spec = {
-      secretName = "wildcard-${replace(var.tls_domain, ".", "-")}-tls"
+      secretName = "wildcard-constantlee-us-tls"
       issuerRef = {
         name = "letsencrypt-dns01"
         kind = "ClusterIssuer"
       }
-      dnsNames = [
-        var.tls_domain,
-        "*.${var.tls_domain}",
-      ]
+    dnsNames = var.tls_domains
     }
   })
 }
@@ -94,7 +91,7 @@ resource "kubectl_manifest" "default_tls_store" {
     }
     spec = {
       defaultCertificate = {
-        secretName = "wildcard-${replace(var.tls_domain, ".", "-")}-tls"
+        secretName = "wildcard-constantlee-us-tls"
       }
     }
   })

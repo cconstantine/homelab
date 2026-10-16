@@ -16,8 +16,8 @@
 module "smelt" {
   source = "git::https://github.com/cconstantine/smelt.git//terraform/smelt?ref=main"
 
-  image         = "ghcr.io/cconstantine/smelt:latest"
-  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:latest"
+  image         = "ghcr.io/cconstantine/smelt:f1bb26a22f72"
+  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:f1bb26a22f72"
 
   # smelt.constantlee.us, a record of the globally-resolved domain every
   # *.constantlee.us name has TLS under. The module's default base URL —
@@ -26,6 +26,7 @@ module "smelt" {
   #
   # Previews stay off (they want a wildcard DNS record of their own and, for
   # one-label TLS coverage, the apex domain as the preview domain). Setting
-  # `preview_domain = "constantlee.us"` turns them on when that's wanted.
+  preview_domain = "preview.smelt.constantlee.us"
   domain = "smelt.constantlee.us"
+  
 }

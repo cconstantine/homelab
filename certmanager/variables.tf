@@ -7,6 +7,6 @@ variable "acme_email" {
   type = string
 }
 
-variable "tls_domain" {
-  type = string
+variable "tls_domains" {
+  type = list(string)
 }
