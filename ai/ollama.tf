@@ -518,7 +518,14 @@ resource "kubernetes_deployment_v1" "ollama_ryzen" {
     namespace = kubernetes_namespace.namespace.metadata.0.name
   }
   spec {
-    replicas = 1
+    # Runs alongside kubernetes_deployment_v1.llama_cpp_ryzen via GPU
+    # time-slicing (nvidia-device-plugin's discrete_device_plugin_config,
+    # replicas: 2) -- both claim 1 of the 2 virtual nvidia.com/gpu slots on
+    # ryzen's single physical GPU. Time-slicing shares compute but not VRAM,
+    # so watch for OOM if both load large models concurrently. Scaled to 0
+    # while llama-cpp-ryzen runs Qwen3.8-Flash-Next (needs most of the 3070's
+    # 8GB VRAM for attention/KV).
+    replicas = 0
     strategy {
       type = "Recreate"
     }

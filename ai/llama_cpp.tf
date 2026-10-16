@@ -215,33 +215,21 @@ resource "kubernetes_deployment_v1" "llama_cpp_ryzen" {
 
         container {
           name              = "llama-cpp"
-          image             = "ghcr.io/ggml-org/llama.cpp:server-cuda"
           image_pull_policy = "Always"
+          image             = "ghcr.io/ggml-org/llama.cpp:server-cuda"
 
           args = [
             "-m", "/models/${local.llama_cpp_model_0}",
             "--alias", local.llama_cpp_model,
             "--host", "0.0.0.0",
             "--port", "8080",
-            # For flash-next: 262144 = its full n_ctx_train (256K). Only 12 of
-            # 48 layers are true attention (full_attention_interval=4), so KV
-            # scales gently, but f16 KV at 256K is ~6GiB -- too big for the
-            # 3070 alongside weights. q8_0 KV halves it to ~3GiB (measured
-            # harmless on this model). Tradeoff: the fit heuristic pushes all
-            # expert layers to CPU to make room, so generation drops from
-            # ~25 tok/s back toward ~10-12 tok/s. Prefill ~280 tok/s means a
-            # full 256K prompt takes ~15min to ingest.
-            #
-            # For the small qwen3-* classification models: 32768 total split
-            # across --parallel 32 slots (1K each) is plenty for short
-            # OneSignal message + few-shot prompt + a one-word category
-            # label, and --cont-batching lets many in-flight classification
-            # requests share GPU passes instead of serializing -- that's the
-            # throughput this deployment exists for.
+
             "--ctx-size", tostring(local.llama_cpp_ctx_size),
             "--cache-type-k", "q8_0",
             "--cache-type-v", "q8_0",
             "--parallel", tostring(local.llama_cpp_parallel),
+
+            "--load-mode", "none",
             "--cont-batching",
             "--jinja",
             "--metrics",
