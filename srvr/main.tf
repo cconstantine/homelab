@@ -28,6 +28,10 @@ resource "kubernetes_stateful_set" "srvr" {
     }
     service_name = kubernetes_service.srvr.metadata.0.name
 
+    update_strategy {
+      type = "RollingUpdate"
+    }
+
     template {
       metadata {
         labels = {
