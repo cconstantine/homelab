@@ -9,3 +9,6 @@
 
 park-kubeconfig*
 park-certs*
+
+opencode.json
+.claude/settings.local.json
