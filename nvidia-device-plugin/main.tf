@@ -10,18 +10,6 @@ resource "kubernetes_labels" "xavier_gpu" {
   }
 }
 
-resource "kubernetes_labels" "ryzen_gpu" {
-  api_version = "v1"
-  kind        = "Node"
-  metadata {
-    name = "ryzen"
-  }
-  labels = {
-    "nvidia.com/gpu.present" = "true"
-    "nvidia.com/gpu.type"    = "discrete"
-  }
-}
-
 resource "kubernetes_labels" "homelab_gpu" {
   api_version = "v1"
   kind        = "Node"

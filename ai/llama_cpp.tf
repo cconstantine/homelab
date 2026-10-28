@@ -1,16 +1,43 @@
 # llama.cpp server on ryzen, replacing ollama-ryzen (scaled to 0 in
-# ollama.tf). Uses the upstream ggml-org CUDA image since ryzen is a plain
-# x86_64 + discrete-GPU host (no Jetson/L4T quirks).
+# ollama.tf). Uses the upstream ggml-org ROCm image on ryzen's Radeon AI
+# PRO R9700 (32GB, gfx1201) -- the ROCm userspace ships in the image, so the
+# host only needs the amdgpu kernel driver. The GPU is exposed as
+# amd.com/r9700 by amd-device-plugin.
+#
+# ROCm vs Vulkan (server-vulkan), flash-next, 2.5k-token prompt, 256 gen:
+#   vulkan  ~589 tok/s prompt, 24.8 tok/s gen, ~15s model load
+#   rocm    ~595 tok/s prompt, 27.2 tok/s gen, ~79s model load
+# Vulkan also pins CPU-resident weights as GTT (~47GB); ROCm doesn't.
 
 locals {
   # Which model llama-cpp-ryzen serves. Flip llama_cpp_model and re-apply.
   #
-  #   flash-next     Qwen3.8-Flash-Next UD-Q2_K_XL (~79GB, ~4B active, hybrid
-  #                  attention). Hardware-matched: tiny active expert set,
-  #                  fits ryzen's 96GB RAM well enough, ~25 tok/s with the
-  #                  full 3070. Good general/agentic model, but massively
-  #                  overkill (and too slow, ~10-25 tok/s, single stream
-  #                  only) for high-volume short-text classification.
+  #   flash-next     Qwen3.8-Flash-Next UD-Q3_K_XL (~90GB, ~4B active, hybrid
+  #                  attention). Hardware-matched: tiny active expert set.
+  #                  Quant-size swept on the R9700 against a near-full
+  #                  262144-ctx correctness probe (a fact buried early in a
+  #                  ~240k-token document, asked for back at the end), not
+  #                  just a short-prompt throughput check:
+  #                    UD-Q2_K_XL (~79GB): passes, 24.8 tok/s -- previously
+  #                      the deployed quant, now one notch below best verified.
+  #                    UD-Q3_K_XL (~90GB): passes, 22.4 tok/s -- picked: the
+  #                      largest quant that passes, for ~10% less speed.
+  #                    UD-Q4_K_XL (~111GB): FAILS the near-full-context probe
+  #                      (immediate empty response, reproduced twice) despite
+  #                      being higher-precision and despite using the same
+  #                      q8_0 KV cache that works at Q2/Q3. Cause not
+  #                      understood (quant-specific vs. the specific
+  #                      --n-cpu-moe split tried) -- do not use until this is
+  #                      explained.
+  #                    UD-Q5_K_XL (~158GB) and up: hard ceiling, not a tuning
+  #                      problem. Crash-loops (SIGKILL/137, kernel OOM) a few
+  #                      minutes into loading on every offload split tried,
+  #                      including an all-CPU fallback. Ryzen has 93GB RAM;
+  #                      this quant's CPU-resident portion alone exceeds that
+  #                      regardless of how much the R9700's 32GB VRAM holds.
+  #                  Good general/agentic model, but massively overkill (and
+  #                  too slow, ~20-25 tok/s, single stream only) for
+  #                  high-volume short-text classification.
   #
   #   qwen3-235b     Qwen3-235B-A22B Q4_K_M (~142GB, 22B active). TRIED IT:
   #                  cold-cache measured 0.46 tok/s prompt / 0.59 tok/s gen
@@ -39,8 +66,8 @@ locals {
 
   llama_cpp_models = {
     flash-next = {
-      hf_path = "unsloth/Qwen3.8-Flash-Next-GGUF/resolve/main/UD-Q2_K_XL"
-      files   = [for i in range(1, 4) : "Qwen3.8-Flash-Next-UD-Q2_K_XL-0000${i}-of-00003.gguf"]
+      hf_path = "unsloth/Qwen3.8-Flash-Next-GGUF/resolve/main/UD-Q3_K_XL"
+      files   = [for i in range(1, 4) : "Qwen3.8-Flash-Next-UD-Q3_K_XL-0000${i}-of-00003.gguf"]
     }
     qwen3-235b = {
       hf_path = "unsloth/Qwen3-235B-A22B-GGUF/resolve/main/Q4_K_M"
@@ -68,6 +95,22 @@ locals {
   # selected, though those don't fit VRAM well enough to benefit anyway.
   llama_cpp_parallel = contains(["qwen3-4b", "qwen3-1.7b", "qwen3-0.6b"], local.llama_cpp_model) ? 32 : 1
   llama_cpp_ctx_size = contains(["qwen3-4b", "qwen3-1.7b", "qwen3-0.6b"], local.llama_cpp_model) ? 32768 : 262144
+
+  # smelt's llama.cpp provider has this exact alias registered as its
+  # model (see smelt's /providers page) -- keep it stable across a model
+  # swap within flash-next's own quant ladder so smelt's existing
+  # conversations/provider config don't need re-pointing. Any other
+  # llama_cpp_model keeps its own name as the alias.
+  llama_cpp_alias = local.llama_cpp_model == "flash-next" ? "overnight-model" : local.llama_cpp_model
+
+  # flash-next-specific GPU/CPU split, swept on the R9700: manually fixing
+  # it beats llama.cpp's own device-fit heuristic (common_fit_params) here,
+  # unlike on the old 3070 where manual pinning consistently OOM'd (see the
+  # init_container comment below) -- the heuristic packs VRAM right up to
+  # its limit (~97%), which measurably cost decode speed (14-19 tok/s)
+  # versus a deliberately roomier split (--n-cpu-moe 30, ~80-95% VRAM
+  # depending on quant, ~22-25 tok/s).
+  llama_cpp_offload_args = local.llama_cpp_model == "flash-next" ? ["--n-gpu-layers", "99", "--n-cpu-moe", "30"] : []
 }
 
 resource "kubernetes_ingress_v1" "llama_cpp_ryzen" {
@@ -169,20 +212,21 @@ resource "kubernetes_deployment_v1" "llama_cpp_ryzen" {
       }
       spec {
         node_selector = {
-          "nvidia.com/gpu.type"    = "discrete"
+          "amd.com/gpu.type"       = "r9700"
           "kubernetes.io/hostname" = "ryzen"
         }
 
-        runtime_class_name = "nvidia"
-
-        # Deliberately *not* passing --n-gpu-layers/--cpu-moe/--override-tensor
-        # here: any of those disables llama.cpp's own device-fit heuristic
-        # (common_fit_params). For the big MoEs (flash-next, qwen3-235b) that
-        # heuristic is the only thing that got them to fit in the 3070's 8GB
-        # VRAM at all -- manually pinning layers/experts to GPU/CPU
-        # consistently OOM'd. For the small qwen3-4b/1.7b/0.6b classification
-        # models it's moot: they fit entirely in VRAM either way, so the
-        # heuristic just places 100% of layers on GPU automatically.
+        # On the pre-R9700 3070 (8GB VRAM), manually pinning layers/experts
+        # to GPU/CPU (--n-gpu-layers/--cpu-moe/--override-tensor) consistently
+        # OOM'd for the big MoEs here -- llama.cpp's own device-fit heuristic
+        # (common_fit_params) was the only thing that got them to fit at all.
+        # On the R9700 (32GB), that's flipped for flash-next: the heuristic
+        # packs VRAM right up to ~97%, which measurably cost decode speed
+        # versus a deliberately roomier manual split -- see
+        # llama_cpp_offload_args above. Still relying on the heuristic (no
+        # offload args) for the small qwen3-4b/1.7b/0.6b classification
+        # models, where it's moot anyway: they fit entirely in VRAM either
+        # way, so the heuristic just places 100% of layers on GPU.
         init_container {
           name  = "init-model"
           image = "curlimages/curl:8.11.1"
@@ -216,11 +260,11 @@ resource "kubernetes_deployment_v1" "llama_cpp_ryzen" {
         container {
           name              = "llama-cpp"
           image_pull_policy = "Always"
-          image             = "ghcr.io/ggml-org/llama.cpp:server-cuda"
+          image             = "ghcr.io/ggml-org/llama.cpp:server-rocm"
 
-          args = [
+          args = concat([
             "-m", "/models/${local.llama_cpp_model_0}",
-            "--alias", local.llama_cpp_model,
+            "--alias", local.llama_cpp_alias,
             "--host", "0.0.0.0",
             "--port", "8080",
 
@@ -233,27 +277,18 @@ resource "kubernetes_deployment_v1" "llama_cpp_ryzen" {
             "--cont-batching",
             "--jinja",
             "--metrics",
-          ]
+          ], local.llama_cpp_offload_args)
 
           port {
             container_port = 8080
           }
 
-          env {
-            name  = "NVIDIA_VISIBLE_DEVICES"
-            value = "all"
-          }
-          env {
-            name  = "NVIDIA_DRIVER_CAPABILITIES"
-            value = "all"
-          }
-
           resources {
             limits = {
-              "nvidia.com/gpu" = "1"
+              "amd.com/r9700" = "1"
             }
             requests = {
-              "nvidia.com/gpu" = "1"
+              "amd.com/r9700" = "1"
             }
           }
 

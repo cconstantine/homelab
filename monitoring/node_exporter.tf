@@ -37,7 +37,10 @@ resource "kubernetes_daemonset" "node_exporter" {
             "--collector.filesystem.mount-points-exclude=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/.+)($|/)",
             # "--collector.filesystem.ignored-mount-points=^/(dev|proc|sys|var/lib/docker/.+|var/lib/kubelet/pods/.+)($|/)",
             "--collector.netclass.ignored-devices=^(veth.*)$",
-            "--no-collector.thermal_zone"
+            "--no-collector.thermal_zone",
+            # amdgpu busy % and VRAM/GTT usage (ryzen's R9700). Temp/power
+            # come from the default-on hwmon collector.
+            "--collector.drm",
           ]
           volume_mount {
             name              = "sys"

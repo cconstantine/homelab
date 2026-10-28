@@ -366,10 +366,10 @@ resource "kubernetes_deployment_v1" "ollama_xavier" {
         }
 
         init_container {
-          name    = "init-exporter-packages"
-          image   = "python:3.11-slim"
+          name  = "init-exporter-packages"
+          image = "python:3.11-slim"
           command = ["pip", "install", "--target=/packages", "--no-cache-dir", "--quiet",
-                     "fastapi", "uvicorn", "httpx", "prometheus_client"]
+          "fastapi", "uvicorn", "httpx", "prometheus_client"]
           volume_mount {
             name       = "exporter-packages"
             mount_path = "/packages"
@@ -518,10 +518,9 @@ resource "kubernetes_deployment_v1" "ollama_ryzen" {
     namespace = kubernetes_namespace.namespace.metadata.0.name
   }
   spec {
-    # Runs alongside kubernetes_deployment_v1.llama_cpp_ryzen via GPU
-    # time-slicing (nvidia-device-plugin's discrete_device_plugin_config,
-    # replicas: 2) -- both claim 1 of the 2 virtual nvidia.com/gpu slots on
-    # ryzen's single physical GPU. Time-slicing shares compute but not VRAM,
+    # Runs alongside kubernetes_deployment_v1.llama_cpp_ryzen by sharing
+    # the R9700 (amd-device-plugin advertises amd.com/r9700 with count: 2)
+    # -- both claim 1 of the 2 slots on ryzen's single physical GPU. Time-slicing shares compute but not VRAM,
     # so watch for OOM if both load large models concurrently. Scaled to 0
     # while llama-cpp-ryzen runs Qwen3.8-Flash-Next (needs most of the 3070's
     # 8GB VRAM for attention/KV).
@@ -547,12 +546,11 @@ resource "kubernetes_deployment_v1" "ollama_ryzen" {
       }
       spec {
         node_selector = {
-          "nvidia.com/gpu.type"    = "discrete"
+          "amd.com/gpu.type"       = "r9700"
           "kubernetes.io/hostname" = "ryzen"
         }
 
-        runtime_class_name = "nvidia"
-        host_network       = true
+        host_network = true
 
         init_container {
           name    = "init-storage"
@@ -568,10 +566,10 @@ resource "kubernetes_deployment_v1" "ollama_ryzen" {
         }
 
         init_container {
-          name    = "init-exporter-packages"
-          image   = "python:3.11-slim"
+          name  = "init-exporter-packages"
+          image = "python:3.11-slim"
           command = ["pip", "install", "--target=/packages", "--no-cache-dir", "--quiet",
-                     "fastapi", "uvicorn", "httpx", "prometheus_client"]
+          "fastapi", "uvicorn", "httpx", "prometheus_client"]
           volume_mount {
             name       = "exporter-packages"
             mount_path = "/packages"
@@ -580,20 +578,12 @@ resource "kubernetes_deployment_v1" "ollama_ryzen" {
 
         container {
           name  = "ollama"
-          image = "ollama/ollama"
+          image = "ollama/ollama:rocm"
 
           port {
             container_port = 11435
           }
 
-          env {
-            name  = "NVIDIA_VISIBLE_DEVICES"
-            value = "all"
-          }
-          env {
-            name  = "NVIDIA_DRIVER_CAPABILITIES"
-            value = "all"
-          }
           env {
             name  = "OLLAMA_HOST"
             value = "0.0.0.0:11435"
@@ -625,10 +615,10 @@ resource "kubernetes_deployment_v1" "ollama_ryzen" {
 
           resources {
             limits = {
-              "nvidia.com/gpu" = "1"
+              "amd.com/r9700" = "1"
             }
             requests = {
-              "nvidia.com/gpu" = "1"
+              "amd.com/r9700" = "1"
             }
           }
 
