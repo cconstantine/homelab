@@ -32,6 +32,31 @@ scrape_configs:
     static_configs:
       - targets: ['smokeping:9374']
 
+  # strata-ryzen (ai/strata.tf): its /metrics wants the API key, which the
+  # annotation-driven kubernetes-pods job can't send. Same target labels as
+  # that job (name, kubernetes_namespace, kubernetes_pod_name).
+  - job_name: 'strata'
+    authorization:
+      credentials_file: /etc/prometheus-credentials/strata
+    kubernetes_sd_configs:
+      - role: pod
+        namespaces:
+          names: [ai]
+    relabel_configs:
+      - source_labels: [__meta_kubernetes_pod_label_name]
+        action: keep
+        regex: strata-ryzen
+      # Only the server's port (the init container is discovered too).
+      - source_labels: [__meta_kubernetes_pod_container_port_number]
+        action: keep
+        regex: "8080"
+      - action: labelmap
+        regex: __meta_kubernetes_pod_label_(.+)
+      - source_labels: [__meta_kubernetes_namespace]
+        target_label: kubernetes_namespace
+      - source_labels: [__meta_kubernetes_pod_name]
+        target_label: kubernetes_pod_name
+
   - job_name: "node_exporter_external"
     static_configs:
     - targets: ["192.168.1.139:9100", "10.0.0.6:9100", "192.168.8.1:9100", "10.0.0.132:9100", "pixo.lan:9100"]

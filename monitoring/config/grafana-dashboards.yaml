@@ -1,0 +1,13 @@
+# Dashboards kept in monitoring/dashboards/, provisioned from the
+# grafana-dashboards config map. Grafana re-reads the folder, so a changed
+# file shows up after the config map is applied, without a restart. UI edits
+# are allowed but are overwritten by the next change to the file -- export
+# them back into the repo.
+apiVersion: 1
+providers:
+  - name: homelab
+    type: file
+    allowUiUpdates: true
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards

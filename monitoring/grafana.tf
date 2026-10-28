@@ -25,6 +25,28 @@ resource "kubernetes_config_map" "grafana_datasources" {
   }
 }
 
+resource "kubernetes_config_map" "grafana_dashboard_providers" {
+  metadata {
+    name      = "grafana-dashboard-providers"
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
+  }
+
+  data = {
+    "dashboards.yaml" = file("${path.module}/config/grafana-dashboards.yaml")
+  }
+}
+
+resource "kubernetes_config_map" "grafana_dashboards" {
+  metadata {
+    name      = "grafana-dashboards"
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
+  }
+
+  data = {
+    for f in fileset("${path.module}/dashboards", "*.json") : f => file("${path.module}/dashboards/${f}")
+  }
+}
+
 resource "kubernetes_deployment" "grafana" {
   timeouts {
     create = "2m"
@@ -74,6 +96,14 @@ resource "kubernetes_deployment" "grafana" {
             mount_path = "/etc/grafana/provisioning/datasources"
             name       = "grafana-datasources"
           }
+          volume_mount {
+            mount_path = "/etc/grafana/provisioning/dashboards"
+            name       = "grafana-dashboard-providers"
+          }
+          volume_mount {
+            mount_path = "/etc/grafana/dashboards"
+            name       = "grafana-dashboards"
+          }
           env {
             name  = "GF_AUTH_ANONYMOUS_ENABLED"
             value = "true"
@@ -83,6 +113,18 @@ resource "kubernetes_deployment" "grafana" {
           name = "grafana-datasources"
           config_map {
             name = kubernetes_config_map.grafana_datasources.metadata.0.name
+          }
+        }
+        volume {
+          name = "grafana-dashboard-providers"
+          config_map {
+            name = kubernetes_config_map.grafana_dashboard_providers.metadata.0.name
+          }
+        }
+        volume {
+          name = "grafana-dashboards"
+          config_map {
+            name = kubernetes_config_map.grafana_dashboards.metadata.0.name
           }
         }
         volume {

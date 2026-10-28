@@ -1,8 +1,11 @@
 # llama.cpp server on ryzen, replacing ollama-ryzen (scaled to 0 in
-# ollama.tf). Uses the upstream ggml-org ROCm image on ryzen's Radeon AI
-# PRO R9700 (32GB, gfx1201) -- the ROCm userspace ships in the image, so the
-# host only needs the amdgpu kernel driver. The GPU is exposed as
-# amd.com/r9700 by amd-device-plugin.
+# ollama.tf). Itself replaced by strata-ryzen (strata.tf) for flash-next and
+# scaled to 0 -- the two can't share the R9700's VRAM. Kept as the fallback,
+# and for the small classification models Strata doesn't run. Uses the
+# upstream ggml-org ROCm image on ryzen's Radeon AI PRO R9700 (32GB,
+# gfx1201) -- the ROCm userspace ships in the image, so the host only needs
+# the amdgpu kernel driver. The GPU is exposed as amd.com/r9700 by
+# amd-device-plugin.
 #
 # ROCm vs Vulkan (server-vulkan), flash-next, 2.5k-token prompt, 256 gen:
 #   vulkan  ~589 tok/s prompt, 24.8 tok/s gen, ~15s model load
@@ -205,7 +208,8 @@ resource "kubernetes_deployment_v1" "llama_cpp_ryzen" {
     namespace = kubernetes_namespace.namespace.metadata.0.name
   }
   spec {
-    replicas = 1
+    # Scaled to 0 for strata-ryzen (strata.tf), which needs the whole GPU.
+    replicas = 0
     strategy {
       type = "Recreate"
     }

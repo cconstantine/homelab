@@ -116,6 +116,19 @@ resource "kubernetes_config_map" "prometheus_yml" {
   }
 }
 
+# Credentials for scrape targets that need them, mounted at
+# /etc/prometheus-credentials and named by the jobs' credentials_file.
+resource "kubernetes_secret" "prometheus_scrape_credentials" {
+  metadata {
+    name      = "prometheus-scrape-credentials"
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
+  }
+
+  data = {
+    strata = var.strata_api_key
+  }
+}
+
 resource "kubernetes_stateful_set" "prometheus" {
   wait_for_rollout = false
   metadata {
@@ -158,6 +171,12 @@ resource "kubernetes_stateful_set" "prometheus" {
             name = kubernetes_config_map.prometheus_yml.metadata.0.name
           }
         }
+        volume {
+          name = "prometheus-scrape-credentials"
+          secret {
+            secret_name = kubernetes_secret.prometheus_scrape_credentials.metadata.0.name
+          }
+        }
 
         container {
           name  = "prometheus"
@@ -181,6 +200,12 @@ resource "kubernetes_stateful_set" "prometheus" {
           volume_mount {
             name       = "prometheus-yml"
             mount_path = "/etc/prometheus"
+          }
+
+          volume_mount {
+            name       = "prometheus-scrape-credentials"
+            mount_path = "/etc/prometheus-credentials"
+            read_only  = true
           }
 
           resources {
