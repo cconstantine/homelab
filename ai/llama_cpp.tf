@@ -110,7 +110,22 @@ locals {
   # its limit (~97%), which measurably cost decode speed (14-19 tok/s)
   # versus a deliberately roomier split (--n-cpu-moe 30, ~80-95% VRAM
   # depending on quant, ~22-25 tok/s).
-  llama_cpp_offload_args = local.llama_cpp_model == "flash-next" ? ["--n-gpu-layers", "99", "--n-cpu-moe", "30"] : []
+  #
+  # Then --moe-cache-mib (0.7.0): a VRAM cache of the hot experts of the
+  # CPU-resident layers. Moving more layers' experts to the CPU and giving
+  # the freed VRAM to the cache beats keeping whole layers on the GPU
+  # (UD-Q3_K_XL, real-text prompts, pp / tg tok/s):
+  #   --n-cpu-moe 30, no cache   4k 489 / 20.5   34k 492 / 19.3   231k 316 / 8.9
+  #   --n-cpu-moe 34, 4096 MiB   4k 478 / 27.7
+  #   --n-cpu-moe 40, 10500 MiB  4k 449 / 29.4   34k 398 / 25.8   231k 286 / 12.5
+  #   --n-cpu-moe 48, 18000 MiB  4k ~445 / 29.8 steady, but a cold first
+  #                              request and only ~14GB of host RAM left
+  # The cache is allocated before the ~1.8GB compute buffer, so leave that
+  # much VRAM spare: 34/6000 and 40/13000 OOM'd at load. Not generalized to
+  # other large MoEs in the map above (qwen3-235b doesn't fit this box at
+  # all regardless; nothing else here is a comparable size) -- re-sweep
+  # before reusing these values for a different model.
+  llama_cpp_offload_args = local.llama_cpp_model == "flash-next" ? ["--n-gpu-layers", "99", "--n-cpu-moe", "40", "--moe-cache-mib", "10500"] : []
 }
 
 resource "kubernetes_ingress_v1" "llama_cpp_ryzen" {
