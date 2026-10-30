@@ -23,6 +23,14 @@ resource "kubernetes_daemonset" "node_exporter" {
       spec {
         host_network = true
         host_pid     = true
+
+        # Runs on every node, including ryzen (tainted dedicated=strata).
+        toleration {
+          key      = "dedicated"
+          operator = "Equal"
+          value    = "strata"
+          effect   = "NoSchedule"
+        }
         container {
           name  = "node-exporter"
           image = "prom/node-exporter:v1.8.2"

@@ -92,6 +92,26 @@ locals {
     # The English/code draft vocabulary: 81MiB of VRAM instead of 213MiB for
     # the default CJK one -- part of what makes 256K context fit.
     "--mtp-draft-vocab", "/opt/strata/terminal/data/draft_vocab_en.bin",
+    # Hold 2048MiB of VRAM back from the expert cache (default 700). With
+    # UD-IQ4_XS the default left <420MiB free mid-request, and at 1280 the
+    # driver still saw <750MiB free near 245K context; amdgpu then pages
+    # GPU memory to RAM and GPU<->host copies and verify windows stall
+    # (exit -6/-15, #2065). Costs ~600 of ~10.9K cache slots.
+    "--vram-reserve-mib", "2048",
+    # Park a conversation only when its snapshot plus this much would still
+    # be MemAvailable (default 2560). ryzen's vm.min_free_kbytes=1G and
+    # vm.watermark_scale_factor=100 already keep RAM free ahead of these
+    # multi-GB allocations (without them a park waited up to 107s on reclaim
+    # and the watchdog aborted the engine), and MemAvailable excludes that
+    # headroom, so the full default floor counted it twice and refused
+    # parking 220K-token conversations.
+    "--conversation-cache-min-free-mib", "1024",
+    # Fixed, not sized from MemAvailable at start (which the watermarks
+    # shrink to ~5.9GB): two 150-240K-token conversations (3.4-4.6GB each).
+    # 11264 (three) filled up to leave ~3GB of RAM available, and the
+    # reclaim that followed stalled the GPU (verify timeouts, twice in 7
+    # minutes). The floor still gates each park.
+    "--conversation-cache-mib", "7168",
   ], flatten([for flag, value in local.strata.args : [flag, value]]))
 
   # Top-level server settings in the run settings (not engine flags).
@@ -217,6 +237,14 @@ resource "kubernetes_deployment_v1" "strata_ryzen" {
           "kubernetes.io/hostname" = "ryzen"
         }
 
+        # ryzen is tainted dedicated=strata (amd-device-plugin/main.tf).
+        toleration {
+          key      = "dedicated"
+          operator = "Equal"
+          value    = "strata"
+          effect   = "NoSchedule"
+        }
+
         # Strata's docker/compose files ask for a two-minute stop.
         termination_grace_period_seconds = 120
 
@@ -326,6 +354,18 @@ resource "kubernetes_deployment_v1" "strata_ryzen" {
             name  = "STRATA_REQUEST_LINES"
             value = "1"
           }
+          # Not HSA_USERPTR_FOR_PAGED_MEM=0 (docs/AMD_HIP.md, #750): tried
+          # against the reclaim stalls, it didn't stop them (verify timeouts
+          # at 245K context still came) and GPU->host copies to paged memory
+          # went through staging at 20-60MB/s -- a 4.6GB park took 230s.
+          # The engine's stall watchdog (default 60s). Parking a conversation
+          # with nothing to reuse copies 2-4.4GB into fresh RAM, which on ryzen
+          # has taken 9-51s (and once 107s) -- slow, not stuck. 180s keeps the
+          # watchdog for real hangs without killing the engine mid-park.
+          env {
+            name  = "STRATA_WATCHDOG_S"
+            value = "180"
+          }
           env {
             name = "API_KEY"
             value_from {
@@ -340,10 +380,15 @@ resource "kubernetes_deployment_v1" "strata_ryzen" {
             container_port = 8080
           }
 
-          # The image's own HEALTHCHECK: GET /v1/models with the key.
+          # Ready once the server listens. Not the image's HEALTHCHECK
+          # (/v1/models must list a loaded model): after the engine exits the
+          # server starts it again only on the next request, and that probe
+          # took the pod out of the Service until then -- so none came, and
+          # clients got 503 "no available server" until a request was sent
+          # from inside the pod.
           readiness_probe {
-            exec {
-              command = ["/opt/strata/healthcheck.sh"]
+            tcp_socket {
+              port = 8080
             }
             period_seconds  = 15
             timeout_seconds = 8

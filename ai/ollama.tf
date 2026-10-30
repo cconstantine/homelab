@@ -550,6 +550,14 @@ resource "kubernetes_deployment_v1" "ollama_ryzen" {
           "kubernetes.io/hostname" = "ryzen"
         }
 
+        # ryzen is tainted dedicated=strata (amd-device-plugin/main.tf).
+        toleration {
+          key      = "dedicated"
+          operator = "Equal"
+          value    = "strata"
+          effect   = "NoSchedule"
+        }
+
         host_network = true
 
         init_container {

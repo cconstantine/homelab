@@ -235,6 +235,14 @@ resource "kubernetes_deployment_v1" "llama_cpp_ryzen" {
           "kubernetes.io/hostname" = "ryzen"
         }
 
+        # ryzen is tainted dedicated=strata (amd-device-plugin/main.tf).
+        toleration {
+          key      = "dedicated"
+          operator = "Equal"
+          value    = "strata"
+          effect   = "NoSchedule"
+        }
+
         # On the pre-R9700 3070 (8GB VRAM), manually pinning layers/experts
         # to GPU/CPU (--n-gpu-layers/--cpu-moe/--override-tensor) consistently
         # OOM'd for the big MoEs here -- llama.cpp's own device-fit heuristic

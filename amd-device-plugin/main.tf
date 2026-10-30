@@ -10,6 +10,28 @@ resource "kubernetes_labels" "ryzen_gpu" {
   }
 }
 
+# ryzen is the Strata box: it needs the whole R9700 and, at 256K context,
+# ~70GB of its 93GB RAM. A smelt sandbox (8Gi limit, no request) landing
+# here could push it into the reclaim stalls that abort the engine, so only
+# pods that tolerate dedicated=strata are scheduled here. Running pods
+# aren't evicted (NoSchedule); k3s's svclb pods don't tolerate it, so if
+# ryzen's svclb-traefik is ever recreated, 192.168.8.217 stops answering on
+# 80/443 (the other nodes still do).
+resource "kubernetes_node_taint" "ryzen" {
+  metadata {
+    name = "ryzen"
+  }
+  # Its own server-side-apply manager: under the default ("Terraform", the
+  # same as kubernetes_labels.ryzen_gpu above) applying the taint dropped the
+  # amd.com/gpu.* labels, and the device plugin left the node.
+  field_manager = "terraform-ryzen-taint"
+  taint {
+    key    = "dedicated"
+    value  = "strata"
+    effect = "NoSchedule"
+  }
+}
+
 # ryzen has two amdgpu devices: the Radeon AI PRO R9700 (03:00.0, gfx1201,
 # 32GB) and the Raphael iGPU (6e:00.0, gfx1036). Both show up as KFD nodes,
 # so ROCm's own k8s-device-plugin would advertise 2x amd.com/gpu and could
@@ -51,6 +73,14 @@ resource "kubernetes_daemonset" "r9700_device_plugin" {
 
         node_selector = {
           "amd.com/gpu.type" = "r9700"
+        }
+
+        # ryzen is tainted dedicated=strata (kubernetes_node_taint.ryzen above).
+        toleration {
+          key      = "dedicated"
+          operator = "Equal"
+          value    = "strata"
+          effect   = "NoSchedule"
         }
 
         # Disable runtime PM on the R9700. When idle, amdgpu runtime-suspends
