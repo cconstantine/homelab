@@ -280,7 +280,7 @@ resource "kubernetes_deployment_v1" "strata_ryzen" {
 
         container {
           name  = "strata"
-          image = "ghcr.io/niko1221/strata:0.2.7-rocm-gfx120x"
+          image = "ghcr.io/niko1221/strata:0.2.9-rocm-gfx120x"
 
           # Wraps the image's entrypoint (tini -> entrypoint.sh run) for what
           # its env vars can't set:
