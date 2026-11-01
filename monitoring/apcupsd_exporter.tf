@@ -19,17 +19,27 @@ resource "kubernetes_deployment" "apcupsd_exporter" {
         }
 
         annotations = {
-            prometheus_io_scrape = true
-            prometheus_io_port = "9162"
+          prometheus_io_scrape = true
+          prometheus_io_port   = "9162"
         }
       }
       spec {
-                node_selector = {
+        node_selector = {
           "kubernetes.io/arch" = "amd64"
         }
         container {
-          name    = "apcupsd-exporter"
-          image   = "b3vis/apcupsd_exporter:latest"
+          name = "apcupsd-exporter"
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "16Mi"
+            }
+            limits = {
+              memory = "32Mi"
+            }
+          }
+          image = "b3vis/apcupsd_exporter:latest"
           env {
             name  = "APCUPSDADDR"
             value = "homelab.lan:3551"

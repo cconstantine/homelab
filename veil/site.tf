@@ -19,8 +19,23 @@ resource "kubernetes_deployment" "veil_exporter" {
         }
       }
       spec {
+        # The image is amd64-only (on xavier it dies with "exec format error").
+        node_selector = {
+          "kubernetes.io/arch" = "amd64"
+        }
+
         container {
-          name  = "veil"
+          name = "veil"
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "32Mi"
+            }
+            limits = {
+              memory = "32Mi"
+            }
+          }
           image = "ghcr.io/cconstantine/veil:latest"
           port {
             container_port = 80

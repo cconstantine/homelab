@@ -177,7 +177,13 @@ resource "kubernetes_stateful_set" "frigate" {
           }
 
           resources {
+            requests = {
+              cpu              = "450m"
+              memory           = "1856Mi"
+              "nvidia.com/gpu" = "1"
+            }
             limits = {
+              memory           = "3Gi"
               "nvidia.com/gpu" = "1"
             }
           }

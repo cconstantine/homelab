@@ -85,7 +85,17 @@ resource "kubernetes_deployment" "grafana" {
           }
         }
         container {
-          name  = "grafana"
+          name = "grafana"
+
+          resources {
+            requests = {
+              cpu    = "40m"
+              memory = "1728Mi"
+            }
+            limits = {
+              memory = "3Gi"
+            }
+          }
           image = "grafana/grafana:13.2.4"
 
           volume_mount {

@@ -431,10 +431,12 @@ resource "kubernetes_deployment_v1" "ollama_xavier" {
           }
 
           resources {
-            limits = {
+            requests = {
+              cpu              = "10m"
+              memory           = "32Mi"
               "nvidia.com/gpu" = "1"
             }
-            requests = {
+            limits = {
               "nvidia.com/gpu" = "1"
             }
           }
@@ -446,7 +448,17 @@ resource "kubernetes_deployment_v1" "ollama_xavier" {
         }
 
         container {
-          name    = "ollama-metrics"
+          name = "ollama-metrics"
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "48Mi"
+            }
+            limits = {
+              memory = "80Mi"
+            }
+          }
           image   = "python:3.11-slim"
           command = ["python3", "/exporter/exporter.py"]
 

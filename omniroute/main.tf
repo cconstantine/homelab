@@ -192,12 +192,11 @@ resource "kubernetes_deployment_v1" "omniroute" {
 
           resources {
             requests = {
-              cpu    = "500m"
-              memory = "2Gi"
+              cpu    = "10m"
+              memory = "704Mi"
             }
             limits = {
-              cpu    = "4"
-              memory = "10Gi"
+              memory = "1Gi"
             }
           }
 

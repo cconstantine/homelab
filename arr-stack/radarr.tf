@@ -95,7 +95,17 @@ resource "kubernetes_stateful_set" "radarr" {
       }
       spec {
         container {
-          name              = "radarr"
+          name = "radarr"
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "208Mi"
+            }
+            limits = {
+              memory = "320Mi"
+            }
+          }
           image             = "lscr.io/linuxserver/radarr:latest"
           image_pull_policy = "Always"
 

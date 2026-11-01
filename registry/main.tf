@@ -92,8 +92,11 @@ resource "kubernetes_stateful_set" "registry" {
 
           resources {
             requests = {
-              cpu    = "100m"
-              memory = "256Mi"
+              cpu    = "10m"
+              memory = "32Mi"
+            }
+            limits = {
+              memory = "96Mi"
             }
           }
 

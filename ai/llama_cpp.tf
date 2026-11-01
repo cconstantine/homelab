@@ -311,10 +311,12 @@ resource "kubernetes_deployment_v1" "llama_cpp_ryzen" {
           }
 
           resources {
-            limits = {
+            requests = {
+              cpu             = "12"
+              memory          = "64Gi"
               "amd.com/r9700" = "1"
             }
-            requests = {
+            limits = {
               "amd.com/r9700" = "1"
             }
           }

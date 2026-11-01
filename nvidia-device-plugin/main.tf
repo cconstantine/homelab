@@ -91,7 +91,17 @@ resource "kubernetes_daemonset" "nvidia_device_plugin_tegra" {
         }
 
         container {
-          name  = "nvidia-device-plugin"
+          name = "nvidia-device-plugin"
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "32Mi"
+            }
+            limits = {
+              memory = "32Mi"
+            }
+          }
           image = "nvcr.io/nvidia/k8s-device-plugin:v0.14.5"
           args  = ["--config-file", "/config/config.yaml"]
 
@@ -207,7 +217,17 @@ resource "kubernetes_daemonset" "nvidia_device_plugin_discrete" {
         }
 
         container {
-          name  = "nvidia-device-plugin"
+          name = "nvidia-device-plugin"
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "48Mi"
+            }
+            limits = {
+              memory = "64Mi"
+            }
+          }
           image = "nvcr.io/nvidia/k8s-device-plugin:v0.14.5"
           args  = ["--config-file", "/config/config.yaml"]
 

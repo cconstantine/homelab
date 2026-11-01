@@ -18,8 +18,24 @@ resource "kubernetes_deployment" "blackbox_exporter" {
         }
       }
       spec {
+        # amd64 nodes only: on an arm node (pixo-8, since removed) its DNS lookups
+        # timed out. Untested on xavier.
+        node_selector = {
+          "kubernetes.io/arch" = "amd64"
+        }
+
         container {
-          name  = "blackbox-exporter"
+          name = "blackbox-exporter"
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "32Mi"
+            }
+            limits = {
+              memory = "32Mi"
+            }
+          }
           image = "prom/blackbox-exporter:latest"
         }
       }

@@ -95,7 +95,17 @@ resource "kubernetes_stateful_set" "prowlarr" {
       }
       spec {
         container {
-          name              = "prowlarr"
+          name = "prowlarr"
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "176Mi"
+            }
+            limits = {
+              memory = "256Mi"
+            }
+          }
           image             = "lscr.io/linuxserver/prowlarr:latest"
           image_pull_policy = "Always"
 

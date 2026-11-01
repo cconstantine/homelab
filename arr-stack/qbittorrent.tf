@@ -96,7 +96,17 @@ resource "kubernetes_stateful_set" "qbittorrent" {
       }
       spec {
         container {
-          name              = "qbittorrent"
+          name = "qbittorrent"
+
+          resources {
+            requests = {
+              cpu    = "20m"
+              memory = "960Mi"
+            }
+            limits = {
+              memory = "1664Mi"
+            }
+          }
           image             = "lscr.io/linuxserver/qbittorrent:latest"
           image_pull_policy = "Always"
 

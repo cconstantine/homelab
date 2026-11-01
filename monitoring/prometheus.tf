@@ -210,11 +210,10 @@ resource "kubernetes_stateful_set" "prometheus" {
 
           resources {
             requests = {
-              cpu    = "1"
-              memory = "4Gi"
+              cpu    = "100m"
+              memory = "2Gi"
             }
             limits = {
-              cpu    = "12"
               memory = "4Gi"
             }
           }

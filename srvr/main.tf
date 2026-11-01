@@ -44,8 +44,18 @@ resource "kubernetes_stateful_set" "srvr" {
       }
       spec {
         container {
-          name  = "srvr"
-          image = "ghcr.io/twinkle-astronomy/srvr:latest"
+          name = "srvr"
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "64Mi"
+            }
+            limits = {
+              memory = "96Mi"
+            }
+          }
+          image             = "ghcr.io/twinkle-astronomy/srvr:latest"
           image_pull_policy = "Always"
 
 

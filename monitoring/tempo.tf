@@ -86,8 +86,8 @@ resource "kubernetes_deployment" "tempo" {
 
           resources {
             requests = {
-              cpu    = "100m"
-              memory = "256Mi"
+              cpu    = "10m"
+              memory = "640Mi"
             }
             limits = {
               memory = "2Gi"

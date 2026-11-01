@@ -10,6 +10,25 @@ resource "helm_release" "cert_manager" {
     value = "true"
   }]
 
+  values = [yamlencode({
+    resources = {
+      requests = { cpu = "10m", memory = "80Mi" }
+      limits   = { memory = "112Mi" }
+    }
+    cainjector = {
+      resources = {
+        requests = { cpu = "10m", memory = "64Mi" }
+        limits   = { memory = "96Mi" }
+      }
+    }
+    webhook = {
+      resources = {
+        requests = { cpu = "10m", memory = "48Mi" }
+        limits   = { memory = "80Mi" }
+      }
+    }
+  })]
+
   wait = true
 }
 
@@ -71,7 +90,7 @@ resource "kubectl_manifest" "wildcard_certificate" {
         name = "letsencrypt-dns01"
         kind = "ClusterIssuer"
       }
-    dnsNames = var.tls_domains
+      dnsNames = var.tls_domains
     }
   })
 }

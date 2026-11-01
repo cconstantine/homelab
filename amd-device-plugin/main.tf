@@ -126,12 +126,11 @@ resource "kubernetes_daemonset" "r9700_device_plugin" {
 
           resources {
             requests = {
-              cpu    = "50m"
-              memory = "10Mi"
+              cpu    = "10m"
+              memory = "32Mi"
             }
             limits = {
-              cpu    = "50m"
-              memory = "20Mi"
+              memory = "32Mi"
             }
           }
 

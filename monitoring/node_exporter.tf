@@ -32,7 +32,17 @@ resource "kubernetes_daemonset" "node_exporter" {
           effect   = "NoSchedule"
         }
         container {
-          name  = "node-exporter"
+          name = "node-exporter"
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "48Mi"
+            }
+            limits = {
+              memory = "64Mi"
+            }
+          }
           image = "prom/node-exporter:v1.8.2"
           port {
             container_port = 9100

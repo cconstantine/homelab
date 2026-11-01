@@ -119,7 +119,17 @@ resource "kubernetes_daemonset" "gpu_exporter" {
         }
 
         container {
-          name    = "gpu-exporter"
+          name = "gpu-exporter"
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "32Mi"
+            }
+            limits = {
+              memory = "48Mi"
+            }
+          }
           image   = "python:3.11-slim"
           command = ["python3", "/exporter/exporter.py"]
 
@@ -271,7 +281,17 @@ resource "kubernetes_daemonset" "gpu_exporter_discrete" {
         }
 
         container {
-          name    = "gpu-exporter"
+          name = "gpu-exporter"
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "48Mi"
+            }
+            limits = {
+              memory = "80Mi"
+            }
+          }
           image   = "python:3.11-slim"
           command = ["python3", "/exporter/exporter.py"]
 

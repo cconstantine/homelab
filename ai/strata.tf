@@ -401,10 +401,12 @@ resource "kubernetes_deployment_v1" "strata_ryzen" {
           }
 
           resources {
-            limits = {
+            requests = {
+              cpu             = "16"
+              memory          = "72Gi"
               "amd.com/r9700" = "1"
             }
-            requests = {
+            limits = {
               "amd.com/r9700" = "1"
             }
           }

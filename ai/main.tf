@@ -87,7 +87,17 @@ resource "kubernetes_stateful_set" "chat" {
       }
       spec {
         container {
-          name              = "chat"
+          name = "chat"
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "832Mi"
+            }
+            limits = {
+              memory = "1280Mi"
+            }
+          }
           image             = "ghcr.io/open-webui/open-webui:main"
           image_pull_policy = "Always"
           env {

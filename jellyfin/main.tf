@@ -186,10 +186,13 @@ resource "kubernetes_stateful_set" "jellyfin" {
           }
 
           resources {
-            limits = {
+            requests = {
+              cpu              = "10m"
+              memory           = "768Mi"
               "nvidia.com/gpu" = "1"
             }
-            requests = {
+            limits = {
+              memory           = "2Gi"
               "nvidia.com/gpu" = "1"
             }
           }

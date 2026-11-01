@@ -95,7 +95,17 @@ resource "kubernetes_stateful_set" "sonarr" {
       }
       spec {
         container {
-          name              = "sonarr"
+          name = "sonarr"
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "240Mi"
+            }
+            limits = {
+              memory = "384Mi"
+            }
+          }
           image             = "lscr.io/linuxserver/sonarr:latest"
           image_pull_policy = "Always"
 

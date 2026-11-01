@@ -19,8 +19,24 @@ resource "kubernetes_deployment" "speedtest_exporter" {
         }
       }
       spec {
+        # amd64 nodes only: on an arm node (pixo-8, since removed) its DNS lookups
+        # timed out. Untested on xavier.
+        node_selector = {
+          "kubernetes.io/arch" = "amd64"
+        }
+
         container {
-          name  = "speedtest-exporter"
+          name = "speedtest-exporter"
+
+          resources {
+            requests = {
+              cpu    = "10m"
+              memory = "48Mi"
+            }
+            limits = {
+              memory = "64Mi"
+            }
+          }
           image = "miguelndecarvalho/speedtest-exporter:latest"
           port {
             container_port = 9798
