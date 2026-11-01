@@ -218,6 +218,22 @@ resource "helm_release" "arc_runner_set" {
                 matchLabels = { "actions.github.com/scale-set-name" = "arc-runner-${each.key}" }
               }
             }]
+            # And, where there's room, not beside another host_storage set's
+            # runner (smelt's server and browser jobs): each is several cores
+            # and ~10GiB of cargo, Postgres and k3s.
+            preferredDuringSchedulingIgnoredDuringExecution = [{
+              weight = 100
+              podAffinityTerm = {
+                topologyKey = "kubernetes.io/hostname"
+                labelSelector = {
+                  matchExpressions = [{
+                    key      = "actions.github.com/scale-set-name"
+                    operator = "In"
+                    values   = [for k, t in local.runner_targets : "arc-runner-${k}" if t.host_storage != null && k != each.key]
+                  }]
+                }
+              }
+            }]
           }
         }
         initContainers = concat(each.value.host_storage == null ? [] : [
