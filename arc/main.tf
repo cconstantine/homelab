@@ -11,26 +11,93 @@ locals {
       github_config_secret = "arc-github-pat"
       platform             = p
       host_storage         = null
+      dind_resources       = null
+      min_runners          = 1
+      max_runners          = 1
     } },
     # One runner per smelt CI job, so the jobs run side by side and each
     # keeps a cache of its own; ci.yml names them. Docker storage and the CI
     # build cache (see ci_cache_path) are on the node's own disk rather than
     # local-path PVCs: those live on homelab's SATA SSD with the rest of k3s,
-    # which smelt's tests kept 95-100% busy. This path is on its NVMe root
+    # which smelt's tests kept 95-100% busy. This path is on the node's root
     # disk, and every runner needs its own: two dockerds can't share one.
-    { for name, dir in {
-      "smelt-amd64"         = "/var/lib/arc-runner-smelt"
-      "smelt-amd64-browser" = "/var/lib/arc-runner-smelt-browser"
+    #
+    # A runner may land on any of `nodes`; each keeps its own copy of the
+    # cache at the same path, so a run builds on whatever that node's last
+    # run left (a node's first run starts cold). Not shared over the
+    # network: target/ is 20-60GB of small files cargo stats, and Docker's
+    # storage can't live on NFS -- whose only server here is homelab anyway.
+    #
+    # dind_resources reserve what a job's containers (the cargo build,
+    # Postgres, a nested k3s) use, which run in the dind container's cgroup
+    # (see nested_dockerd). Measured over one warm-cache run of both jobs:
+    # server peaked at 11.1GiB and 5.9 cores (4.8 p95), browser at 9.5GiB and
+    # 4.8 cores (3.4 p95), memory including reclaimable page cache. No CPU
+    # limit: a cold build uses every idle core.
+    #
+    # Runners exist only while jobs run (min 0), so the reservations are
+    # held only then; a job waits about a minute for its pod. Up to two per
+    # job, one per node of host_storage.nodes (podAntiAffinity below): two
+    # dockerds can't share a node's cache directory.
+    { for name, r in {
+      "smelt-amd64" = {
+        dir = "/var/lib/arc-runner-smelt"
+        resources = {
+          requests = { cpu = "4", memory = "10Gi" }
+          limits   = { memory = "16Gi" }
+        }
+      }
+      "smelt-amd64-browser" = {
+        dir = "/var/lib/arc-runner-smelt-browser"
+        resources = {
+          requests = { cpu = "3", memory = "8Gi" }
+          limits   = { memory = "14Gi" }
+        }
+      }
       } : name => {
       github_config_url    = "https://github.com/cconstantine/smelt"
       github_config_secret = "arc-github-pat-smelt"
       platform             = "amd64"
       host_storage = {
-        node = "homelab"
-        path = dir
+        nodes = ["homelab", "system76"]
+        path  = r.dir
       }
+      dind_resources = r.resources
+      min_runners    = 0
+      max_runners    = 2
     } }
   )
+
+  # dind's command on amd64, in place of the docker:dind entrypoint (taken
+  # from smelt's docker/sandbox/start-dockerd.sh). A privileged container
+  # shares the node's cgroup namespace here, so /sys/fs/cgroup is the node's
+  # whole tree: the dind entrypoint, assuming a private one, moved every
+  # process in the node's root cgroup into /init and enabled controllers at
+  # the node's root, and dockerd then put a job's containers under /docker at
+  # the node's root -- outside the pod, its requests and limits, and
+  # Prometheus. This keeps dockerd and every container it starts inside the
+  # dind container's own cgroup, and writes nowhere else. Runs as `sh -c
+  # <this> start-dockerd <dockerd args>`.
+  nested_dockerd = <<-EOT
+    set -eu
+    self=$(sed -n 's/^0:://p' /proc/self/cgroup)
+    base=/sys/fs/cgroup$self
+    mkdir -p "$base/dockerd"
+    # cgroup v2: a cgroup whose children get controllers can't hold
+    # processes itself, so move ours into a leaf first. Retried: an exec
+    # probe can land a new process in $base between the move and the write.
+    until {
+      for pid in $(cat "$base/cgroup.procs"); do
+        echo "$pid" > "$base/dockerd/cgroup.procs" 2>/dev/null || :
+      done
+      sed -e 's/ / +/g' -e 's/^/+/' < "$base/cgroup.controllers" > "$base/cgroup.subtree_control"
+    } 2>/dev/null; do
+      sleep 0.1
+    done
+    # As the dind entrypoint does; only this container's mount namespace.
+    mount --make-rshared /
+    exec dockerd --cgroup-parent="$self/docker" "$@"
+  EOT
 
   # Mounted at the same path in the runner and dind containers, so a job can
   # bind-mount it into its own containers. Runners with host_storage get one.
@@ -65,6 +132,13 @@ resource "helm_release" "arc_controller" {
   repository = "oci://ghcr.io/actions/actions-runner-controller-charts"
   chart      = "gha-runner-scale-set-controller"
   version    = "0.14.0"
+
+  values = [yamlencode({
+    resources = {
+      requests = { cpu = "10m", memory = "64Mi" }
+      limits   = { memory = "96Mi" }
+    }
+  })]
 
   wait = true
 }
@@ -105,10 +179,10 @@ resource "helm_release" "arc_runner_set" {
     githubConfigUrl    = each.value.github_config_url
     githubConfigSecret = each.value.github_config_secret
     runnerScaleSetName = "arc-runner-${each.key}"
-    minRunners         = 1
-    maxRunners         = 1
+    minRunners         = each.value.min_runners
+    maxRunners         = each.value.max_runners
     # Keep the listener on an x86_64 node; left to the scheduler it can land
-    # on an arm node like pixo-8, where it can't resolve api.github.com.
+    # on an arm node, where it couldn't resolve api.github.com (pixo-8, since removed).
     listenerTemplate = {
       spec = {
         nodeSelector = {
@@ -119,10 +193,33 @@ resource "helm_release" "arc_runner_set" {
     }
     template = {
       spec = {
-        nodeSelector = merge(
-          { "kubernetes.io/arch" = local.runner_node_arch[each.value.platform] },
-          each.value.host_storage == null ? {} : { "kubernetes.io/hostname" = each.value.host_storage.node },
-        )
+        nodeSelector = {
+          "kubernetes.io/arch" = local.runner_node_arch[each.value.platform]
+        }
+        # Only nodes that keep a copy of the cache (host_storage.nodes), and
+        # never two of this set's runners on one node: they'd share its
+        # cache directories.
+        affinity = each.value.host_storage == null ? null : {
+          nodeAffinity = {
+            requiredDuringSchedulingIgnoredDuringExecution = {
+              nodeSelectorTerms = [{
+                matchExpressions = [{
+                  key      = "kubernetes.io/hostname"
+                  operator = "In"
+                  values   = each.value.host_storage.nodes
+                }]
+              }]
+            }
+          }
+          podAntiAffinity = {
+            requiredDuringSchedulingIgnoredDuringExecution = [{
+              topologyKey = "kubernetes.io/hostname"
+              labelSelector = {
+                matchLabels = { "actions.github.com/scale-set-name" = "arc-runner-${each.key}" }
+              }
+            }]
+          }
+        }
         initContainers = concat(each.value.host_storage == null ? [] : [
           {
             # hostPath creates the cache dir root-owned; the runner user
@@ -174,8 +271,10 @@ resource "helm_release" "arc_runner_set" {
               command = ["sh", "-c"]
               args    = ["apk add --no-cache iptables-legacy && for cmd in iptables ip6tables iptables-save iptables-restore ip6tables-save ip6tables-restore; do ln -sf /usr/sbin/xtables-legacy-multi /usr/sbin/$cmd; done && exec dockerd-entrypoint.sh dockerd --host=unix:///var/run/docker.sock --group=123 --mtu=1450 --default-network-opt=bridge=com.docker.network.driver.mtu=1450"]
               } : {
-              args = ["dockerd", "--host=unix:///var/run/docker.sock", "--group=$(DOCKER_GROUP_GID)", "--mtu=1450", "--default-network-opt=bridge=com.docker.network.driver.mtu=1450"]
-            }
+              command = ["sh", "-c", local.nested_dockerd, "start-dockerd"]
+              args    = ["--host=unix:///var/run/docker.sock", "--group=$(DOCKER_GROUP_GID)", "--mtu=1450", "--default-network-opt=bridge=com.docker.network.driver.mtu=1450"]
+            },
+            each.value.dind_resources == null ? {} : { resources = each.value.dind_resources },
           )
         ])
         containers = [
