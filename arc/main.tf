@@ -59,7 +59,7 @@ locals {
       github_config_secret = "arc-github-pat-smelt"
       platform             = "amd64"
       host_storage = {
-        nodes = ["homelab", "system76"]
+        nodes = ["homelab", "system76", "cachyos-x8664"]
         path  = r.dir
       }
       dind_resources = r.resources
