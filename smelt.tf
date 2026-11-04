@@ -16,8 +16,8 @@
 module "smelt" {
   source = "git::https://github.com/cconstantine/smelt.git//terraform/smelt?ref=main"
 
-  image         = "ghcr.io/cconstantine/smelt:a802bea9d46c"
-  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:a802bea9d46c"
+  image         = "ghcr.io/cconstantine/smelt:c788262a2b62"
+  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:c788262a2b62"
 
   # smelt.constantlee.us, a record of the globally-resolved domain every
   # *.constantlee.us name has TLS under. The module's default base URL —
@@ -33,5 +33,6 @@ module "smelt" {
   # Tempo → TraceQL, e.g. `{ resource.service.name = "smelt" }`).
   extra_env = {
     OTEL_EXPORTER_OTLP_ENDPOINT = module.monitoring.tempo_otlp_http_endpoint
+    SANDBOX_NODE_SELECTOR = "kubernetes.io/arch=amd64"
   }
 }
