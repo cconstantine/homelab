@@ -61,6 +61,19 @@ it tells you it restarted during your turn so you can carry on.
       export TF_VAR_cloudflare_api_token=unused TF_VAR_cloudflare_account_id=unused \
              TF_VAR_github_pat=unused TF_VAR_github_pat_smelt=unused
 
+- **The Claude Code token (SME-438).** `smelt.tf`'s `claude_code_oauth_token` is
+  used: it becomes the server's `CLAUDE_CODE_OAUTH_TOKEN` through a Secret. Your
+  persona mounts it at `/etc/smelt/secrets/claude_oauth_token`. Check it, then
+  export it, in the same shell as the plan and apply. Never echo it, never
+  `set -x`, and never set it to a placeholder:
+
+      [ -s /etc/smelt/secrets/claude_oauth_token ] || { echo "claude_oauth_token is missing or empty: stop and report" >&2; exit 1; }
+      export TF_VAR_claude_code_oauth_token="$(cat /etc/smelt/secrets/claude_oauth_token)"
+
+  A missing or empty file is a stop-and-report, not a deploy: never invent a
+  value. The plan shows it only as `(sensitive value)`; the variable's own
+  validation refuses anything that isn't a real `sk-ant-oat` token.
+
 - `terraform init -input=false`
 
 ## 3. Change the image

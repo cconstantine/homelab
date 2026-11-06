@@ -13,6 +13,24 @@
 # template never changes and the pull policy is IfNotPresent), so a restarted
 # pod — or `kubectl rollout restart` — is what actually pulls the new image.
 
+# The Claude Code provider's subscription token (SME-438). It reaches the smelt
+# server only through the module's `secret_env` (a Kubernetes Secret and a
+# secretKeyRef, never a plain env value). The smelt deployer exports it as
+# TF_VAR_claude_code_oauth_token from its `claude_oauth_token` smelt secret; it
+# is never written in this repo. It has no default and must look like a real
+# `claude setup-token` token, so any plan that includes module.smelt without it
+# (or with a placeholder like "unused") fails at plan instead of clearing it.
+variable "claude_code_oauth_token" {
+  description = "CLAUDE_CODE_OAUTH_TOKEN for smelt's Claude Code provider, from `claude setup-token`."
+  type        = string
+  sensitive   = true
+
+  validation {
+    condition     = startswith(var.claude_code_oauth_token, "sk-ant-oat")
+    error_message = "claude_code_oauth_token must be a real `claude setup-token` token (sk-ant-oat...): export TF_VAR_claude_code_oauth_token, never a placeholder."
+  }
+}
+
 module "smelt" {
   source = "git::https://github.com/cconstantine/smelt.git//terraform/smelt?ref=main"
 
@@ -28,6 +46,11 @@ module "smelt" {
   # one-label TLS coverage, the apex domain as the preview domain). Setting
   preview_domain = "preview.smelt.constantlee.us"
   domain         = "smelt.constantlee.us"
+
+  # The Claude Code token, from the variable above (SME-438).
+  secret_env = {
+    CLAUDE_CODE_OAUTH_TOKEN = var.claude_code_oauth_token
+  }
 
   # Traces to Tempo in the monitoring namespace, read in Grafana (Explore →
   # Tempo → TraceQL, e.g. `{ resource.service.name = "smelt" }`).
