@@ -16,8 +16,8 @@
 module "smelt" {
   source = "git::https://github.com/cconstantine/smelt.git//terraform/smelt?ref=main"
 
-  image         = "ghcr.io/cconstantine/smelt:e1ccd501a1a8"
-  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:e1ccd501a1a8"
+  image         = "ghcr.io/cconstantine/smelt:5e1c28eddfbd"
+  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:5e1c28eddfbd"
 
   # smelt.constantlee.us, a record of the globally-resolved domain every
   # *.constantlee.us name has TLS under. The module's default base URL —
