@@ -106,9 +106,11 @@ resource "kubernetes_stateful_set" "frigate" {
         }
       }
       spec {
+        # homelab's RTX 3070, shared with jellyfin (the node advertises two
+        # nvidia.com/gpu). homelab is also the NFS server for both volumes.
         node_selector = {
-          "nvidia.com/gpu.present" = "true"
-          "kubernetes.io/hostname" = "xavier"
+          "nvidia.com/gpu.type"    = "discrete"
+          "kubernetes.io/hostname" = "homelab"
         }
         runtime_class_name = "nvidia"
 
@@ -136,19 +138,24 @@ resource "kubernetes_stateful_set" "frigate" {
         }
 
         container {
-          name  = "frigate"
-          image = "ghcr.io/blakeblackshear/frigate:stable-tensorrt-jp5"
+          name = "frigate"
+          # The -tensorrt image is the Nvidia desktop build: the ONNX detector
+          # runs on the GPU. Upgrading from 0.15.2 (xavier's jp5 image)
+          # migrates frigate.db forward on first start; the pre-upgrade copy
+          # is in /config/backup-0.15.2/ on the NFS share.
+          image = "ghcr.io/blakeblackshear/frigate:0.18.2-tensorrt"
           env {
             name  = "FRIGATE_RTSP_PASSWORD"
             value = "password"
           }
           env {
-            name  = "YOLO_MODELS"
-            value = "yolov7-tiny-416"
+            name  = "NVIDIA_VISIBLE_DEVICES"
+            value = "all"
           }
+          # "all" includes `video`, which NVDEC (ffmpeg preset-nvidia) needs.
           env {
-            name  = "TRT_MODEL_PREP_DEVICE"
-            value = "0"
+            name  = "NVIDIA_DRIVER_CAPABILITIES"
+            value = "all"
           }
           volume_mount {
             name       = "frigate-media"

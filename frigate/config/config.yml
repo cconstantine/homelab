@@ -1,14 +1,23 @@
+# Written in 0.18's format. This file is a read-only ConfigMap mount, so
+# Frigate can't migrate it itself; the version tells it no migration is due.
+version: 0.18-0
+
+# ONNX on homelab's RTX 3070 (the -tensorrt image runs ONNX Runtime with the
+# CUDA/TensorRT providers). The model is YOLOv9-s at 320x320, exported with the
+# command in Frigate's docs (Object Detectors > ONNX > YOLOv9) and copied to
+# /storage/frigate/config/model_cache/ on homelab.
 detectors:
-  tensorrt:
-    type: tensorrt
-    device: 0
+  onnx:
+    type: onnx
 
 model:
-  path: /config/model_cache/tensorrt/yolov7-tiny-416.trt
+  model_type: yolo-generic
+  width: 320
+  height: 320
   input_tensor: nchw
-  input_pixel_format: rgb
-  width: 416
-  height: 416
+  input_dtype: float
+  path: /config/model_cache/yolov9-s-320.onnx
+  labelmap_path: /labelmap/coco-80.txt
 
 
 
@@ -24,7 +33,7 @@ cameras:
   telescope:
     enabled: true
     ffmpeg:
-      hwaccel_args: preset-jetson-h264
+      hwaccel_args: preset-nvidia
       inputs:
         - path: rtsp://stream:xj27c7jo@192.168.8.64:554/Streaming/Channels/101
           roles:
