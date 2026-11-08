@@ -52,7 +52,7 @@ cameras:
       enabled: True
       width: 640
       height: 360
-      fps: 2
+      fps: 5
 
 record:
   enabled: True
