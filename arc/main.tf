@@ -259,7 +259,7 @@ resource "helm_release" "arc_runner_set" {
           merge(
             {
               name  = "dind"
-              image = each.value.platform == "arm64" || each.value.platform == "armv7" ? "docker:26-dind" : "docker:dind"
+              image = "docker:dind"
               env = [{
                 name  = "DOCKER_GROUP_GID"
                 value = "123"
@@ -283,10 +283,10 @@ resource "helm_release" "arc_runner_set" {
                 { name = "dind-docker", mountPath = "/var/lib/docker" }
               ], each.value.host_storage != null ? [{ name = "ci-cache", mountPath = local.ci_cache_path }] : [])
             },
-            each.value.platform == "arm64" || each.value.platform == "armv7" ? {
-              command = ["sh", "-c"]
-              args    = ["apk add --no-cache iptables-legacy && for cmd in iptables ip6tables iptables-save iptables-restore ip6tables-save ip6tables-restore; do ln -sf /usr/sbin/xtables-legacy-multi /usr/sbin/$cmd; done && exec dockerd-entrypoint.sh dockerd --host=unix:///var/run/docker.sock --group=123 --mtu=1450 --default-network-opt=bridge=com.docker.network.driver.mtu=1450"]
-              } : {
+            # Every platform starts dockerd the same way. The arm runners used
+            # to pin docker:26-dind with iptables-legacy for xavier's L4T host
+            # kernel; on xavier-vm (6.18, cgroup v2, nftables) they don't.
+            {
               command = ["sh", "-c", local.nested_dockerd, "start-dockerd"]
               args    = ["--host=unix:///var/run/docker.sock", "--group=$(DOCKER_GROUP_GID)", "--mtu=1450", "--default-network-opt=bridge=com.docker.network.driver.mtu=1450"]
             },
