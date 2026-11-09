@@ -74,7 +74,21 @@ it tells you it restarted during your turn so you can carry on.
   value. The plan shows it only as `(sensitive value)`; the variable's own
   validation refuses anything that isn't a real `sk-ant-oat` token.
 
-- `terraform init -input=false`
+- **Provider mirror (SME-465).** Three providers here (gavinbunney/kubectl,
+  ryanwholey/pihole, cloudflare/cloudflare) download from GitHub release assets,
+  whose host intermittently 504s for hours. Build the verified mirror first, then
+  init through it — always, not only when downloads seem broken:
+
+      python3 smelt-deployer/tf_provider_mirror.py
+      export TF_CLI_CONFIG_FILE=$HOME/deploy.tfrc
+      terraform init -input=false
+
+  The script fetches those providers via the GitHub API asset endpoint, checks every
+  zip against `.terraform.lock.hcl`'s `zh:` hashes, and writes `~/deploy.tfrc`,
+  which pins init to the mirror for exactly those providers (others go direct).
+  Their install lines read `(unauthenticated)` — expected; the lockfile checksum is
+  the verification. A non-zero exit is stop-and-report like everything else here;
+  do not fall back to bare init or retry-until-green.
 
 ## 3. Change the image
 
@@ -134,5 +148,7 @@ When the command finishes, or when smelt says it restarted during your turn:
   `-target=module.smelt`. No `destroy`, and no `terraform state` commands.
 - If a plan or apply reports `Error acquiring the state lock`, someone else is
   running Terraform. Wait and retry; never use `-lock=false` or `force-unlock`.
+- Never edit, drop or re-record `.terraform.lock.hcl` hashes to make a download
+  pass — the mirror is verified by those hashes, not around them.
 - Don't recreate your own sandbox pod during a deploy.
 - Never print, log or commit the kubeconfig or its token.
