@@ -17,10 +17,12 @@ providers BEFORE init runs, so init never touches the flaky path:
   4. Write the CLI config (default ~/deploy.tfrc) LAST, atomically: the strict
      pin — filesystem_mirror include + direct exclude for exactly the mirrored
      providers. The loose form was measured still reaching the flaky direct host.
-  5. Refuse to shrink the pin set silently: if an existing config pins a provider
-     the current lockfile no longer yields as github-hosted, exit non-zero —
-     dropping a pin sends that provider back to the flaky path. Clearing old
-     mirror/config state stays the operator's call; the script deletes nothing.
+  5. Refuse to shrink the pin set silently, checked BEFORE any network call: if
+     an existing config pins a provider the current lockfile no longer has a
+     block for, exit non-zero naming it — the GitHub API budget (60/h/IP) is
+     never spent to learn of a lockfile drop. A second check after the lookups
+     still refuses a pin dropped by a re-host. Clearing old mirror/config state
+     stays the operator's call; the script deletes nothing.
 
 Run from the repo root; defaults --mirror ~/tf-mirror --config ~/deploy.tfrc
 --target linux_amd64. Idempotent: a mirrored zip whose sha256 is still zh-valid is
@@ -73,9 +75,9 @@ def get_json(url, what):
         fail("%s: GET %s -> HTTP %d%s" % (what, url, e.code, note))
     except (urllib.error.URLError, OSError) as e:
         fail("%s: GET %s -> %s" % (what, url, e))
-    except (json.JSONDecodeError, http.client.HTTPException) as e:
-        # a 200 with a non-JSON/truncated body, or a truncated read: a clean error,
-        # never a traceback (SME-465 review L2).
+    except (json.JSONDecodeError, UnicodeDecodeError, http.client.HTTPException) as e:
+        # a 200 with a non-JSON, non-UTF-8, or truncated body, or a truncated
+        # read: a clean error, never a traceback (SME-465 review L2, R2-L1).
         fail("%s: GET %s -> malformed response (%s: %s)"
              % (what, url, type(e).__name__, e))
 
@@ -209,15 +211,17 @@ def write_tfrc(config, mirror, sources):
                 pass
 
 
-def guard_no_pin_shrink(config, new_pins):
+def guard_no_pin_shrink(config, keep, early=False):
     """The pin set must never shrink silently: dropping a provider from
     filesystem_mirror include sends it back to the flaky direct host — the exact
-    bypass this mechanism exists to stop. If an existing tfrc pins a provider the
-    current lockfile no longer yields as github-hosted, that is either an
-    unallowed lockfile edit or a real provider removal/re-host, and either way it
-    is stop-and-report, not a side effect of a re-run. The script never deletes
-    anything: clearing the old mirror slots + config is the operator's call, so a
-    legitimate change (recorded in a homelab PR) re-runs clean once made."""
+    bypass this mechanism exists to stop. Run early, BEFORE any network call,
+    against the lockfile's provider blocks: a pin whose block is gone is already
+    a shrink, and the GitHub API budget (60/h/IP) must not be spent to learn it.
+    Run again after the lookups against the github-hosted set: a pin dropped by
+    a re-host gets the same refusal. Either case is stop-and-report, not a side
+    effect of a re-run. The script never deletes anything: clearing the old
+    mirror slots + config is the operator's call, so a legitimate change
+    (recorded in a homelab PR) re-runs clean once made."""
     try:
         with open(config, encoding="utf-8") as f:
             text = f.read()
@@ -227,17 +231,20 @@ def guard_no_pin_shrink(config, new_pins):
         fail("cannot read %s to check for a pin shrink: %s" % (config, e))
     m = re.search(r"include\s*=\s*\[(.*?)\]", text, re.S)
     old_pins = set(re.findall(r'"([^"]+)"', m.group(1))) if m else set()
-    dropped = sorted(old_pins - set(new_pins))
+    dropped = sorted(old_pins - set(keep))
     if dropped:
-        fail("%s pins %s, but %s not github-hosted in the current "
-             ".terraform.lock.hcl — refusing to shrink the pin set (a silent drop "
+        if early:
+            why = ("the current .terraform.lock.hcl has no provider block for %s"
+                   % ("it" if len(dropped) == 1 else "them"))
+        else:
+            why = ("%s not github-hosted in the current .terraform.lock.hcl"
+                   % ("was" if len(dropped) == 1 else "were"))
+        fail("%s pins %s, but %s — refusing to shrink the pin set (a silent drop "
              "sends the provider back to the flaky direct path). If the lockfile "
              "just changed, stop-and-report and review that edit; if a provider "
              "removal/re-host is legitimate (recorded in a homelab PR), clearing "
              "the old mirror slots and %s is the operator's call — this script "
-             "never deletes them." % (config, ", ".join(dropped),
-                                      "was" if len(dropped) == 1 else "were",
-                                      config))
+             "never deletes anything." % (config, ", ".join(dropped), why, config))
 
 
 def main():
@@ -253,6 +260,9 @@ def main():
     config = os.path.abspath(os.path.expanduser(args.config))
 
     providers = parse_lock(".terraform.lock.hcl")
+    # Early guard: a dropped provider block needs no network to see, and a
+    # shrunk lockfile must fail without spending any registry/API calls.
+    guard_no_pin_shrink(config, {p["source"] for p in providers}, early=True)
     os.makedirs(mirror, exist_ok=True)
     mirrored = []
     for p in providers:
