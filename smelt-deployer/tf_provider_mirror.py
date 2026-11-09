@@ -17,15 +17,21 @@ providers BEFORE init runs, so init never touches the flaky path:
   4. Write the CLI config (default ~/deploy.tfrc) LAST, atomically: the strict
      pin — filesystem_mirror include + direct exclude for exactly the mirrored
      providers. The loose form was measured still reaching the flaky direct host.
+  5. Refuse to shrink the pin set silently: if an existing config pins a provider
+     the current lockfile no longer yields as github-hosted, exit non-zero —
+     dropping a pin sends that provider back to the flaky path. Clearing old
+     mirror/config state stays the operator's call; the script deletes nothing.
 
 Run from the repo root; defaults --mirror ~/tf-mirror --config ~/deploy.tfrc
 --target linux_amd64. Idempotent: a mirrored zip whose sha256 is still zh-valid is
-kept, no network. Any failure exits non-zero loudly — stop-and-report per
-DEPLOY.md; never fall back to bare init, never touch the lockfile, no -lock=false.
+kept without re-download (the cheap per-provider registry lookups still run). Any
+failure exits non-zero loudly — stop-and-report per DEPLOY.md; never fall back to
+bare init, never touch the lockfile, no -lock=false.
 """
 
 import argparse
 import hashlib
+import http.client
 import json
 import os
 import re
@@ -67,6 +73,11 @@ def get_json(url, what):
         fail("%s: GET %s -> HTTP %d%s" % (what, url, e.code, note))
     except (urllib.error.URLError, OSError) as e:
         fail("%s: GET %s -> %s" % (what, url, e))
+    except (json.JSONDecodeError, http.client.HTTPException) as e:
+        # a 200 with a non-JSON/truncated body, or a truncated read: a clean error,
+        # never a traceback (SME-465 review L2).
+        fail("%s: GET %s -> malformed response (%s: %s)"
+             % (what, url, type(e).__name__, e))
 
 
 def parse_lock(path):
@@ -156,6 +167,10 @@ def fetch_verified(url, zh, dest, label):
         fail("%s: asset download failed: HTTP %d%s" % (label, e.code, note))
     except (urllib.error.URLError, OSError) as e:
         fail("%s: asset download failed: %s" % (label, e))
+    except (http.client.HTTPException, json.JSONDecodeError) as e:
+        # truncated/garbled response mid-download: clean error, never a traceback.
+        fail("%s: asset download failed (malformed response: %s: %s)"
+             % (label, type(e).__name__, e))
     finally:
         if tmp is not None:
             try:
@@ -194,6 +209,37 @@ def write_tfrc(config, mirror, sources):
                 pass
 
 
+def guard_no_pin_shrink(config, new_pins):
+    """The pin set must never shrink silently: dropping a provider from
+    filesystem_mirror include sends it back to the flaky direct host — the exact
+    bypass this mechanism exists to stop. If an existing tfrc pins a provider the
+    current lockfile no longer yields as github-hosted, that is either an
+    unallowed lockfile edit or a real provider removal/re-host, and either way it
+    is stop-and-report, not a side effect of a re-run. The script never deletes
+    anything: clearing the old mirror slots + config is the operator's call, so a
+    legitimate change (recorded in a homelab PR) re-runs clean once made."""
+    try:
+        with open(config, encoding="utf-8") as f:
+            text = f.read()
+    except FileNotFoundError:
+        return
+    except OSError as e:
+        fail("cannot read %s to check for a pin shrink: %s" % (config, e))
+    m = re.search(r"include\s*=\s*\[(.*?)\]", text, re.S)
+    old_pins = set(re.findall(r'"([^"]+)"', m.group(1))) if m else set()
+    dropped = sorted(old_pins - set(new_pins))
+    if dropped:
+        fail("%s pins %s, but %s not github-hosted in the current "
+             ".terraform.lock.hcl — refusing to shrink the pin set (a silent drop "
+             "sends the provider back to the flaky direct path). If the lockfile "
+             "just changed, stop-and-report and review that edit; if a provider "
+             "removal/re-host is legitimate (recorded in a homelab PR), clearing "
+             "the old mirror slots and %s is the operator's call — this script "
+             "never deletes them." % (config, ", ".join(dropped),
+                                      "was" if len(dropped) == 1 else "were",
+                                      config))
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--mirror", default="~/tf-mirror")
@@ -230,6 +276,7 @@ def main():
             print("%s: mirrored (zh-verified) %s" % (label, filename))
         mirrored.append(p["source"])
 
+    guard_no_pin_shrink(config, sorted(mirrored))
     write_tfrc(config, mirror, sorted(mirrored))
     print("wrote %s (mirror %s; %d provider(s) pinned to the mirror)"
           % (config, mirror, len(mirrored)))

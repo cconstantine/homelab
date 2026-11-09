@@ -74,10 +74,12 @@ it tells you it restarted during your turn so you can carry on.
   value. The plan shows it only as `(sensitive value)`; the variable's own
   validation refuses anything that isn't a real `sk-ant-oat` token.
 
-- **Provider mirror (SME-465).** Three providers here (gavinbunney/kubectl,
-  ryanwholey/pihole, cloudflare/cloudflare) download from GitHub release assets,
-  whose host intermittently 504s for hours. Build the verified mirror first, then
-  init through it — always, not only when downloads seem broken:
+- **Provider mirror (SME-465).** Providers downloaded from GitHub release assets
+  ride a host that intermittently 504s for hours. Which ones is auto-detected
+  from `.terraform.lock.hcl` — every provider whose registry download URL is on
+  github.com (three as of today) — so there is no list here to keep in sync.
+  Build the verified mirror first, then init through it — always, not only when
+  downloads seem broken:
 
       python3 smelt-deployer/tf_provider_mirror.py
       export TF_CLI_CONFIG_FILE=$HOME/deploy.tfrc
@@ -86,9 +88,12 @@ it tells you it restarted during your turn so you can carry on.
   The script fetches those providers via the GitHub API asset endpoint, checks every
   zip against `.terraform.lock.hcl`'s `zh:` hashes, and writes `~/deploy.tfrc`,
   which pins init to the mirror for exactly those providers (others go direct).
-  Their install lines read `(unauthenticated)` — expected; the lockfile checksum is
-  the verification. A non-zero exit is stop-and-report like everything else here;
-  do not fall back to bare init or retry-until-green.
+  The run must end with the expected pin count: its last line reads
+  `3 provider(s) pinned to the mirror` (the count as of today; the mechanism
+  auto-detects) — a missing line or a smaller count is stop-and-report. Their
+  install lines read `(unauthenticated)` — expected; the lockfile checksum is the
+  verification. A non-zero exit is stop-and-report like everything else here; do
+  not fall back to bare init or retry-until-green.
 
 ## 3. Change the image
 
