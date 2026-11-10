@@ -8,6 +8,12 @@ You deploy smelt by applying only the `smelt` module of this repo
 That account can change smelt's objects in the `smelt-park` namespace and this
 repo's Terraform state, and nothing else.
 
+**Your brief's pin names which version of these instructions to follow, not
+what to check out.** Read them at that commit
+(`git show <pin>:smelt-deployer/DEPLOY.md`), but do the deploy itself on
+master's tip, as step 2 says, never on a checkout of the pin: the commit you
+push in step 6 must sit on master's tip (SME-474).
+
 Applying restarts the smelt server you run under. Your sandbox pod, its
 terminals and their running commands are left alone, and when smelt comes back
 it tells you it restarted during your turn so you can carry on.
@@ -143,8 +149,12 @@ When the command finishes, or when smelt says it restarted during your turn:
 
 - On success, push the commit (`git push origin HEAD:master`) so the repo
   matches the cluster. Otherwise the next full apply from the repo rolls smelt
-  back. If the push is refused, report the commit to the user rather than
-  dropping it.
+  back. If the push is refused as non-fast-forward, fetch,
+  rebase only your one `smelt.tf` commit onto `origin/master`
+  (`git fetch origin && git rebase origin/master`), check that its diff is still
+  just the `image` and `sandbox_image` lines, and push once more. If the rebase
+  conflicts (another deploy moved those lines: `git rebase --abort`) or the push
+  fails again, report the commit to the user rather than dropping it. Never force-push.
 - On failure, report the log tail.
 
 ## Don'ts
