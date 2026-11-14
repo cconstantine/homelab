@@ -34,8 +34,8 @@ variable "claude_code_oauth_token" {
 module "smelt" {
   source = "git::https://github.com/cconstantine/smelt.git//terraform/smelt?ref=main"
 
-  image         = "ghcr.io/cconstantine/smelt:750684b27cc3"
-  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:750684b27cc3"
+  image         = "ghcr.io/cconstantine/smelt:fdf9474c559a"
+  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:fdf9474c559a"
 
   # smelt.constantlee.us, a record of the globally-resolved domain every
   # *.constantlee.us name has TLS under. The module's default base URL —
