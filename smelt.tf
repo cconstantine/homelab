@@ -63,8 +63,12 @@ module "smelt" {
   extra_env = {
     OTEL_EXPORTER_OTLP_ENDPOINT = module.monitoring.tempo_otlp_http_endpoint
     SANDBOX_NODE_SELECTOR       = "kubernetes.io/arch=amd64"
-    # Kill switch for automatic sandbox storage removal (SME-521): off until
-    # the storage class can be verified as Delete with a provisioner.
-    SANDBOX_STORAGE_REMOVAL_DAYS = "0"
+    # Sandbox storage ages out on smelt's grace defaults (7 days for ordinary
+    # stops, 1 for finished agents, 30 for the user's Stop, SME-521): the
+    # claims take the cluster's default class — k3s's stock local-path, a
+    # Delete reclaim with a provisioner, unlike the hand-made PVs behind the
+    # no-provisioner local-storage class other workloads use — and
+    # storage_reader_enabled above lets smelt report the class and any
+    # Released volume that stops reclaiming.
   }
 }
