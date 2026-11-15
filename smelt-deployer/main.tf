@@ -1,6 +1,8 @@
 # A ServiceAccount that can run `terraform apply -target=module.smelt` from
 # this repo and nothing wider: the objects the smelt module manages in
-# smelt-park, the smelt-park namespace object itself, and this repo's state.
+# smelt-park, the smelt-park namespace object itself, the module's one
+# cluster-wide `smelt-storage-reader` ClusterRole and binding, and this repo's
+# state.
 #
 # The account lives in its own namespace, not smelt-park: smelt's `park`
 # account (smelt and every sandbox) can create pods in smelt-park, and a pod
@@ -119,6 +121,38 @@ resource "kubernetes_cluster_role" "smelt_deployer" {
     resources      = ["namespaces"]
     resource_names = ["monitoring"]
     verbs          = ["get"]
+  }
+  # The module's storage reader (storage_reader_enabled, SME-521): a read-only
+  # ClusterRole on PersistentVolumes and StorageClasses, bound to smelt's
+  # `park` account. This account holds those reads itself, which is what lets
+  # it create the role and its binding: Kubernetes refuses a role or binding
+  # granting more than the creator holds. `escalate` and `bind` can't do it
+  # instead -- limited to a name they don't apply to a create (the request has
+  # no name when it's authorized), and unlimited they'd let this account write
+  # any ClusterRole. Without them, it can never widen the storage reader past
+  # these reads, even though it may update it.
+  rule {
+    api_groups = [""]
+    resources  = ["persistentvolumes"]
+    verbs      = ["get", "list"]
+  }
+  rule {
+    api_groups = ["storage.k8s.io"]
+    resources  = ["storageclasses"]
+    verbs      = ["get", "list"]
+  }
+  # `create` can't be limited to a name; the rule above is what keeps it to
+  # roles and bindings no wider than those reads.
+  rule {
+    api_groups = ["rbac.authorization.k8s.io"]
+    resources  = ["clusterroles", "clusterrolebindings"]
+    verbs      = ["create"]
+  }
+  rule {
+    api_groups     = ["rbac.authorization.k8s.io"]
+    resources      = ["clusterroles", "clusterrolebindings"]
+    resource_names = ["smelt-storage-reader"]
+    verbs          = ["get", "update", "patch", "delete"]
   }
 }
 

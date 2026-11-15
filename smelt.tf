@@ -37,10 +37,11 @@ module "smelt" {
   image         = "ghcr.io/cconstantine/smelt:5ce45467c595"
   sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:5ce45467c595"
 
-  # Off: the deployer was refused creating the smelt-storage-reader ClusterRole
-  # (it doesn't hold the get/list it grants), so storage can't be verified
-  # (SME-521).
-  storage_reader_enabled = false
+  # Lets smelt read PersistentVolumes and StorageClasses cluster-wide, so its
+  # Sandboxes page shows the claims' class and their Released volumes
+  # (SME-521). The smelt deployer holds those reads itself so it can make the
+  # ClusterRole; see smelt-deployer/main.tf.
+  storage_reader_enabled = true
 
   # smelt.constantlee.us, a record of the globally-resolved domain every
   # *.constantlee.us name has TLS under. The module's default base URL —
@@ -61,7 +62,7 @@ module "smelt" {
   # Tempo → TraceQL, e.g. `{ resource.service.name = "smelt" }`).
   extra_env = {
     OTEL_EXPORTER_OTLP_ENDPOINT = module.monitoring.tempo_otlp_http_endpoint
-    SANDBOX_NODE_SELECTOR = "kubernetes.io/arch=amd64"
+    SANDBOX_NODE_SELECTOR       = "kubernetes.io/arch=amd64"
     # Kill switch for automatic sandbox storage removal (SME-521): off until
     # the storage class can be verified as Delete with a provisioner.
     SANDBOX_STORAGE_REMOVAL_DAYS = "0"
