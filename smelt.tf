@@ -34,8 +34,13 @@ variable "claude_code_oauth_token" {
 module "smelt" {
   source = "git::https://github.com/cconstantine/smelt.git//terraform/smelt?ref=main"
 
-  image         = "ghcr.io/cconstantine/smelt:b4662365c1ba"
-  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:b4662365c1ba"
+  image         = "ghcr.io/cconstantine/smelt:5ce45467c595"
+  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:5ce45467c595"
+
+  # Off: the deployer was refused creating the smelt-storage-reader ClusterRole
+  # (it doesn't hold the get/list it grants), so storage can't be verified
+  # (SME-521).
+  storage_reader_enabled = false
 
   # smelt.constantlee.us, a record of the globally-resolved domain every
   # *.constantlee.us name has TLS under. The module's default base URL —
@@ -57,5 +62,8 @@ module "smelt" {
   extra_env = {
     OTEL_EXPORTER_OTLP_ENDPOINT = module.monitoring.tempo_otlp_http_endpoint
     SANDBOX_NODE_SELECTOR = "kubernetes.io/arch=amd64"
+    # Kill switch for automatic sandbox storage removal (SME-521): off until
+    # the storage class can be verified as Delete with a provisioner.
+    SANDBOX_STORAGE_REMOVAL_DAYS = "0"
   }
 }
