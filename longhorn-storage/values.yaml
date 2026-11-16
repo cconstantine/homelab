@@ -1,0 +1,96 @@
+# Helm values for longhorn/longhorn 1.13.0. See longhorn-plan.md.
+#
+# Where things run:
+#   homelab/longhorn=true          homelab, ryzen, cachyos-x8664, system76.
+#                                  Every Longhorn pod is limited to these.
+#   homelab/longhorn-control=true  the same minus ryzen. The Deployments that
+#                                  aren't tied to a node run only here, to keep
+#                                  ryzen's memory free for Strata.
+# A component's own nodeSelector replaces global.nodeSelector, it doesn't add
+# to it.
+
+persistence:
+  # Keep local-path as the default class. Sandbox PVCs set no class, so making
+  # Longhorn the default would put every new sandbox volume on it.
+  defaultClass: false
+
+global:
+  nodeSelector:
+    homelab/longhorn: "true"
+  # ryzen is tainted dedicated=strata (amd-device-plugin/main.tf).
+  tolerations:
+    - key: dedicated
+      operator: Equal
+      value: strata
+      effect: NoSchedule
+
+longhornManager:
+  # One per Longhorn node, ryzen included. The limit is a backstop for ryzen:
+  # if the manager restarts, volumes keep working (their engines and replicas
+  # run in the instance manager), but Strata can't be squeezed by it.
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 1Gi
+  # Picked up by Prometheus's kubernetes-service-endpoints job.
+  serviceAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9500"
+
+networkPolicies:
+  # restrictInternalTraffic (on by default) adds NetworkPolicies even though
+  # networkPolicies.enabled is false, and k3s enforces them. The manager's
+  # policy only admits Longhorn's own pods, so Prometheus needs listing here.
+  # Port 9500 is also the manager's REST API, so it's just the one pod.
+  metricsScrapeSources:
+    - namespaceSelector:
+        matchLabels:
+          kubernetes.io/metadata.name: monitoring
+      podSelector:
+        matchLabels:
+          name: prometheus
+
+longhornGlobalManager:
+  nodeSelector:
+    homelab/longhorn-control: "true"
+
+longhornDriver:
+  nodeSelector:
+    homelab/longhorn-control: "true"
+
+longhornUI:
+  replicas: 1
+  nodeSelector:
+    homelab/longhorn-control: "true"
+
+csi:
+  # The CSI controller sidecars follow systemManagedComponentsNodeSelector, so
+  # they can land on ryzen. Two of each instead of three.
+  attacherReplicaCount: 2
+  provisionerReplicaCount: 2
+  resizerReplicaCount: 2
+  snapshotterReplicaCount: 2
+
+defaultBackupStore:
+  # homelab's NFS export, by IP since pods may not resolve homelab.local.
+  # /storage is exported no_root_squash, so Longhorn writes here as root.
+  backupTarget: "nfs://192.168.8.130:/storage/longhorn-backups"
+
+defaultSettings:
+  # For pods Longhorn creates itself (instance manager, engine image, CSI).
+  systemManagedComponentsNodeSelector: "homelab/longhorn:true"
+  taintToleration: "dedicated=strata:NoSchedule"
+  # Disks only on nodes labeled node.longhorn.io/create-default-disk, using
+  # their node.longhorn.io/default-disks-config annotation (longhorn-storage/nodes.tf).
+  createDefaultDiskLabeledNodes: true
+  # homelab is the only control plane; without this, a pod on a dead node
+  # keeps its RWO volume and can't be rescheduled.
+  nodeDownPodDeletionPolicy: delete-both-statefulset-and-deployment-pod
+  # Default is 12% of each node's CPU per instance manager (about 3.8 cores on
+  # ryzen). 5% is plenty for a handful of small volumes. Longhorn rejects the
+  # setting unless both data engines are listed; v2 (unused) keeps its default.
+  guaranteedInstanceManagerCPU:
+    v1: "5"
+    v2: "12"

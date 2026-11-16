@@ -108,3 +108,72 @@ resource "kubernetes_secret" "park_token" {
 
   depends_on = [kubernetes_service_account.park]
 }
+
+# Read-only visibility outside the namespace, for checking storage by hand
+# (Longhorn has no alerts yet). Cluster-scoped objects only: no watch, no
+# secrets, no pods outside the namespace. Names carry var.name because
+# ClusterRole names are global and this module can be instantiated twice.
+resource "kubernetes_cluster_role" "park_storage_read" {
+  metadata {
+    name = "${var.name}-storage-read"
+  }
+  rule {
+    api_groups = ["storage.k8s.io"]
+    resources  = ["storageclasses"]
+    verbs      = ["get", "list"]
+  }
+  rule {
+    api_groups = [""]
+    resources  = ["persistentvolumes", "nodes"]
+    verbs      = ["get", "list"]
+  }
+}
+
+resource "kubernetes_cluster_role_binding" "park_storage_read" {
+  metadata {
+    name = "${var.name}-storage-read"
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "ClusterRole"
+    name      = kubernetes_cluster_role.park_storage_read.metadata.0.name
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.park.metadata.0.name
+    namespace = kubernetes_namespace.claude_park.metadata.0.name
+  }
+}
+
+# Longhorn's CRs are namespaced, so this is a Role in longhorn-system rather
+# than cluster scope. nodes.longhorn.io carries per-disk free/scheduled space,
+# which core Nodes don't. Resources listed explicitly so backup targets and
+# settings stay out.
+resource "kubernetes_role" "park_longhorn_read" {
+  metadata {
+    name      = "${var.name}-longhorn-read"
+    namespace = "longhorn-system"
+  }
+  rule {
+    api_groups = ["longhorn.io"]
+    resources  = ["volumes", "replicas", "engines", "nodes"]
+    verbs      = ["get", "list"]
+  }
+}
+
+resource "kubernetes_role_binding" "park_longhorn_read" {
+  metadata {
+    name      = "${var.name}-longhorn-read"
+    namespace = "longhorn-system"
+  }
+  role_ref {
+    api_group = "rbac.authorization.k8s.io"
+    kind      = "Role"
+    name      = kubernetes_role.park_longhorn_read.metadata.0.name
+  }
+  subject {
+    kind      = "ServiceAccount"
+    name      = kubernetes_service_account.park.metadata.0.name
+    namespace = kubernetes_namespace.claude_park.metadata.0.name
+  }
+}

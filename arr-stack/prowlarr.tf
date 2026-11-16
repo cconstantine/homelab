@@ -56,6 +56,25 @@ resource "kubernetes_persistent_volume_claim" "prowlarr_config" {
   }
 }
 
+# Prowlarr is the Longhorn trial (longhorn-plan.md, phase 2). Its data was
+# copied here from prowlarr-config above, which is kept, unused, as the
+# rollback: its PV is Retain and still points at /storage/arr/prowlarr/config.
+resource "kubernetes_persistent_volume_claim" "prowlarr_config_longhorn" {
+  metadata {
+    name      = "prowlarr-config-longhorn"
+    namespace = kubernetes_namespace.namespace.metadata.0.name
+  }
+  spec {
+    access_modes       = ["ReadWriteOnce"]
+    storage_class_name = "longhorn-r2"
+    resources {
+      requests = {
+        storage = "1Gi"
+      }
+    }
+  }
+}
+
 resource "kubernetes_service" "prowlarr" {
   metadata {
     name      = "prowlarr"
@@ -94,6 +113,12 @@ resource "kubernetes_stateful_set" "prowlarr" {
         }
       }
       spec {
+        # Nodes with Longhorn's CSI plugin, minus ryzen (Strata's memory)
+        # and xavier-vm; see longhorn-storage/values.yaml.
+        node_selector = {
+          "homelab/longhorn-control" = "true"
+        }
+
         container {
           name = "prowlarr"
 
@@ -135,7 +160,7 @@ resource "kubernetes_stateful_set" "prowlarr" {
         volume {
           name = "config"
           persistent_volume_claim {
-            claim_name = kubernetes_persistent_volume_claim.prowlarr_config.metadata.0.name
+            claim_name = kubernetes_persistent_volume_claim.prowlarr_config_longhorn.metadata.0.name
           }
         }
       }
