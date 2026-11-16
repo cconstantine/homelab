@@ -63,12 +63,6 @@ module "smelt" {
   extra_env = {
     OTEL_EXPORTER_OTLP_ENDPOINT = module.monitoring.tempo_otlp_http_endpoint
     SANDBOX_NODE_SELECTOR       = "kubernetes.io/arch=amd64"
-    # TRIAL (2026-11-16, user's call): new sandbox claims on Longhorn's
-    # longhorn-r2 (2 replicas, best-effort locality, Delete reclaim) to
-    # measure build and Docker speed against local-path. Reverted after the
-    # trial; existing claims stay on local-path. The class was made by hand
-    # on the cluster, not here.
-    SANDBOX_STORAGE_CLASS       = "longhorn-r2"
     # Sandbox storage ages out on smelt's grace defaults (7 days for ordinary
     # stops, 1 for finished agents, 30 for the user's Stop, SME-521): the
     # claims take the cluster's default class — k3s's stock local-path, a
