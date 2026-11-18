@@ -470,6 +470,15 @@ resource "kubernetes_deployment_v1" "strata_ryzen" {
       }
     }
   }
+
+  # `kubectl rollout restart` stamps this on the pod template. Without
+  # ignoring it, the next apply removes it, and that template change restarts
+  # strata again (an 87GiB model reload).
+  lifecycle {
+    ignore_changes = [
+      spec[0].template[0].metadata[0].annotations["kubectl.kubernetes.io/restartedAt"],
+    ]
+  }
 }
 
 # For Prometheus's scrape of /metrics (monitoring/config/prometheus.yml).
