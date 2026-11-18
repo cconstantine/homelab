@@ -32,7 +32,7 @@
 locals {
   # The served size: a key of strata_models. Each keeps its own folder, so
   # switching back is this line and a restart.
-  strata_model = "UD-IQ4_XS"
+  strata_model = "UD-IQ4_XS-v31"
 
   strata_models = {
     IQ3_S = {
@@ -69,6 +69,25 @@ locals {
       # into RAM beside the 55GiB of experts, ~85GB at load, and the kernel
       # killed the engine. mmap reads it from the NVMe as IQ3_S's is. The
       # expert cache is left to the engine until a start shows it overshoots.
+      args = { "--ple-io" = "mmap" }
+    }
+    # Unsloth's 11-04 "Dynamic v3.1" re-quant of UD-IQ4_XS: other tensor
+    # types (Q5_0 experts in 33 layers) and four files instead of three, so
+    # Strata (0.2.11+) gives it its own name; the key doubles as MODEL. Mean
+    # KL vs Q8_0 0.084 per unsloth's table (not Strata's measurement, so not
+    # directly comparable with the 0.101 above). Same ~87GiB as UD-IQ4_XS,
+    # with the 26.8GiB n-gram table now its own last shard.
+    "UD-IQ4_XS-v31" = {
+      family  = "unsloth"
+      hf_path = "unsloth/Qwen3.8-Flash-Next-GGUF/resolve/d96201194f103c906994f283f504209dc8d2a10c/UD-IQ4_XS"
+      # name -> sha256 at the revision Strata's setup.py pins (d9620119)
+      files = {
+        "Qwen3.8-Flash-Next-UD-IQ4_XS-00001-of-00004.gguf" = "93ff23a08e5cd7501f24fa16f5b415d5807d0175e04edd3ed6a7a41b601a4eef"
+        "Qwen3.8-Flash-Next-UD-IQ4_XS-00002-of-00004.gguf" = "13d5dc8b93d039e4cfade5a9af7037f10c97f7ec4e53f75bd2e9ae34aae54aeb"
+        "Qwen3.8-Flash-Next-UD-IQ4_XS-00003-of-00004.gguf" = "f6b9b5934908a2043732269dd740155d0f921d0763a1dcdd3452246311651f87"
+        "Qwen3.8-Flash-Next-UD-IQ4_XS-00004-of-00004.gguf" = "5de8b5dbf89409acc39468decafd4a4a95b13c29d88a14b0356107897829ec36"
+      }
+      # Same RAM budget as UD-IQ4_XS, so the same reason to mmap the table.
       args = { "--ple-io" = "mmap" }
     }
   }
@@ -280,7 +299,7 @@ resource "kubernetes_deployment_v1" "strata_ryzen" {
 
         container {
           name  = "strata"
-          image = "ghcr.io/niko1221/strata:0.2.9-rocm-gfx120x"
+          image = "ghcr.io/niko1221/strata:0.2.13-rocm-gfx120x"
 
           # Wraps the image's entrypoint (tini -> entrypoint.sh run) for what
           # its env vars can't set:
