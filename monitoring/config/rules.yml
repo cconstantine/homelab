@@ -5,3 +5,39 @@ groups:
       expr: label_replace(node_nat_traffic, "ip", "$1", "src", "(.*)") / on (ip) group_left(name) uci_dhcp_host
     - record: name:node_nat_traffic:rate:1m
       expr: label_replace(sum(rate(node_nat_traffic[1m])) by (direction, src), "ip", "$1", "src", "(.*)") / on (ip) group_left(name) uci_dhcp_host
+
+  # Pod -> workload, for the "Resource reservations" dashboard's drill-down
+  # (namespace -> workload -> pod). One series per pod, value 1, labels
+  # namespace, pod, workload, workload_type. Each branch first sets workload
+  # to a plain fallback, then overwrites it where the naming pattern matches
+  # (label_replace leaves the label alone on no match).
+  - name: workloads
+    rules:
+    - record: namespace_workload_pod:kube_pod_owner:relabel
+      expr: |
+        max by (namespace, pod, workload, workload_type) (
+          # Deployment pods: owner is ReplicaSet <deployment>-<hash>.
+            label_replace(label_replace(label_replace(kube_pod_owner{owner_kind="ReplicaSet"},
+              "workload", "$1", "owner_name", "(.*)"),
+              "workload", "$1", "owner_name", "(.*)-[a-z0-9]+"),
+              "workload_type", "Deployment", "owner_kind", ".*")
+          # Job pods: CronJob jobs are <cronjob>-<8+ digit schedule time>.
+          or label_replace(label_replace(kube_pod_owner{owner_kind="Job"},
+              "workload", "$1", "owner_name", "(.*?)(-[0-9]{8,})?"),
+              "workload_type", "Job", "owner_kind", ".*")
+          # ARC runners: <scale set>-<5>-runner-<5>.
+          or label_replace(label_replace(label_replace(kube_pod_owner{owner_kind="EphemeralRunner"},
+              "workload", "$1", "owner_name", "(.*)"),
+              "workload", "$1", "owner_name", "(.*)-[a-z0-9]+-runner-[a-z0-9]+"),
+              "workload_type", "RunnerSet", "owner_kind", ".*")
+          # Bare pods (no owner): numbered families like sandbox-2294640442 or
+          # notp-1510 group as sandbox-<n> / notp-<n>; others stand alone.
+          or label_replace(label_replace(label_replace(kube_pod_owner{owner_kind=""},
+              "workload", "$1", "pod", "(.*)"),
+              "workload", "$1-<n>", "pod", "(.*?)(-[0-9]+)+"),
+              "workload_type", "Pod", "owner_kind", ".*")
+          # StatefulSet, DaemonSet, and operator-owned pods: the owner itself.
+          or label_replace(label_replace(kube_pod_owner{owner_kind!~"|ReplicaSet|Job|EphemeralRunner"},
+              "workload", "$1", "owner_name", "(.*)"),
+              "workload_type", "$1", "owner_kind", "(.*)")
+        )
