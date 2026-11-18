@@ -58,8 +58,11 @@ locals {
       github_config_url    = "https://github.com/cconstantine/smelt"
       github_config_secret = "arc-github-pat-smelt"
       platform             = "amd64"
+      # framework is the laptop, which leaves the network: a job running there
+      # then just fails and can be re-run. Its first run there, and each after
+      # it's been away a while, starts with a cold cache.
       host_storage = {
-        nodes = ["homelab", "system76", "cachyos-x8664"]
+        nodes = ["homelab", "system76", "cachyos-x8664", "framework"]
         path  = r.dir
       }
       dind_resources = r.resources

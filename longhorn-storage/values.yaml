@@ -1,11 +1,13 @@
 # Helm values for longhorn/longhorn 1.13.0. See longhorn-plan.md.
 #
 # Where things run:
-#   homelab/longhorn=true          homelab, ryzen, cachyos-x8664, system76.
-#                                  Every Longhorn pod is limited to these.
-#   homelab/longhorn-control=true  the same minus ryzen. The Deployments that
-#                                  aren't tied to a node run only here, to keep
-#                                  ryzen's memory free for Strata.
+#   homelab/longhorn=true          homelab, ryzen, cachyos-x8664, system76,
+#                                  framework. Every Longhorn pod is limited to
+#                                  these. Only the first three have disks.
+#   homelab/longhorn-control=true  the same minus ryzen and framework. The
+#                                  Deployments that aren't tied to a node run
+#                                  only here, to keep ryzen's memory free for
+#                                  Strata and keep them off the laptop.
 # A component's own nodeSelector replaces global.nodeSelector, it doesn't add
 # to it.
 

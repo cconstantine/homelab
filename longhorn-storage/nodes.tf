@@ -24,11 +24,17 @@ locals {
     }
   }
 
-  # system76 runs Longhorn so it can attach volumes, but holds no replicas.
-  longhorn_nodes = toset(concat(keys(local.replica_disks), ["system76"]))
+  # These run Longhorn so pods there can attach volumes, but hold no replicas
+  # (no create-default-disk label, so Longhorn gives them no disk). framework
+  # is the laptop, which leaves the network: a volume attached there is
+  # unavailable until the pod is rescheduled, but no data lives on it.
+  attach_only_nodes = ["system76", "framework"]
 
-  # The Deployments that aren't tied to a node stay off ryzen.
-  control_nodes = setsubtract(local.longhorn_nodes, ["ryzen"])
+  longhorn_nodes = toset(concat(keys(local.replica_disks), local.attach_only_nodes))
+
+  # The Deployments that aren't tied to a node stay off ryzen (kept free for
+  # Strata) and framework (it leaves).
+  control_nodes = setsubtract(local.longhorn_nodes, ["ryzen", "framework"])
 }
 
 # Each resource has its own server-side-apply field manager, so applying it
