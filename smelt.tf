@@ -34,8 +34,8 @@ variable "claude_code_oauth_token" {
 module "smelt" {
   source = "git::https://github.com/cconstantine/smelt.git//terraform/smelt?ref=main"
 
-  image         = "ghcr.io/cconstantine/smelt:c8c0ad7248dd"
-  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:c8c0ad7248dd"
+  image         = "ghcr.io/cconstantine/smelt:af6592a638e3"
+  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:af6592a638e3"
 
   # Lets smelt read PersistentVolumes and StorageClasses cluster-wide, so its
   # Sandboxes page shows the claims' class and their Released volumes
