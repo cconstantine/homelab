@@ -30,10 +30,19 @@ locals {
     #
     # dind_resources reserve what a job's containers (the cargo build,
     # Postgres, a nested k3s) use, which run in the dind container's cgroup
-    # (see nested_dockerd). Measured over one warm-cache run of both jobs:
-    # server peaked at 11.1GiB and 5.9 cores (4.8 p95), browser at 9.5GiB and
-    # 4.8 cores (3.4 p95), memory including reclaimable page cache. No CPU
-    # limit: a cold build uses every idle core.
+    # (see nested_dockerd). Measured over the fortnight to 2026-11-19, from
+    # the jobs' own memory reports (SME-578) and cAdvisor: server's dind
+    # peaked at 14.2GiB and ~5.9 cores, browser's at 13.3GiB and 2.6 cores
+    # (its cargo build caps its jobs' memory, SME-575) -- against the old
+    # 16Gi/14Gi limits that was 88% and 95%: memory includes the page cache
+    # the builds want, and a cgroup that full makes every allocation compete
+    # with reclaim. Anonymous-only, the peaks are under 5.5GiB each, so the
+    # limits are headroom, not expectation. Requests sit at the working set
+    # the jobs actually hold: with the node OOM-killing by the hundred a day
+    # since Nov 16 (runners and smelt's sandboxes sharing these nodes), an
+    # honest request at least makes the runners schedulable with intent and
+    # ranks them properly for eviction. No CPU limit: a cold build uses
+    # every idle core.
     #
     # Runners exist only while jobs run (min 0), so the reservations are
     # held only then; a job waits about a minute for its pod. Up to two per
@@ -43,15 +52,15 @@ locals {
       "smelt-amd64" = {
         dir = "/var/lib/arc-runner-smelt"
         resources = {
-          requests = { cpu = "4", memory = "10Gi" }
-          limits   = { memory = "16Gi" }
+          requests = { cpu = "5", memory = "12Gi" }
+          limits   = { memory = "20Gi" }
         }
       }
       "smelt-amd64-browser" = {
         dir = "/var/lib/arc-runner-smelt-browser"
         resources = {
-          requests = { cpu = "3", memory = "8Gi" }
-          limits   = { memory = "14Gi" }
+          requests = { cpu = "3", memory = "10Gi" }
+          limits   = { memory = "16Gi" }
         }
       }
       } : name => {
@@ -191,7 +200,16 @@ resource "helm_release" "arc_runner_set" {
         nodeSelector = {
           "kubernetes.io/arch" = "amd64"
         }
-        containers = [{ name = "listener" }]
+        containers = [{
+          name = "listener"
+          # It only polls GitHub for jobs and watches the scale set; it is
+          # idle by design, and no request made it evictable first, as for
+          # the runner container below.
+          resources = {
+            requests = { cpu = "100m", memory = "256Mi" }
+            limits   = { memory = "512Mi" }
+          }
+        }]
       }
     }
     template = {
@@ -301,6 +319,16 @@ resource "helm_release" "arc_runner_set" {
             name    = "runner"
             image   = "ghcr.io/actions/actions-runner:latest"
             command = ["/home/runner/run.sh"]
+            # The runner process and the job's non-docker steps (checkout,
+            # git, node actions) peaked at 0.35GiB and under a core over a
+            # fortnight. It had no resources at all before: invisible to the
+            # scheduler, and first in line for eviction, since usage against
+            # no request reads as unbounded over-commit. The limit is headroom
+            # for a build step that forgets to run under dind.
+            resources = {
+              requests = { cpu = "250m", memory = "512Mi" }
+              limits   = { memory = "2Gi" }
+            }
             env = concat([
               {
                 name  = "DOCKER_HOST"
