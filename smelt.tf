@@ -16,8 +16,8 @@
 module "smelt" {
   source = "git::https://github.com/cconstantine/smelt.git//terraform/smelt?ref=main"
 
-  image         = "ghcr.io/cconstantine/smelt:b0ef6bd9ac8d"
-  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:b0ef6bd9ac8d"
+  image         = "ghcr.io/cconstantine/smelt:194ff5342ef6"
+  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:194ff5342ef6"
 
   # Lets smelt read PersistentVolumes and StorageClasses cluster-wide, so its
   # Sandboxes page shows the claims' class and their Released volumes
