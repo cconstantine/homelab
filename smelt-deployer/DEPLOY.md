@@ -64,8 +64,9 @@ Say in one line that the deploy is starting and smelt will restart, then:
 It applies the saved plan, checks the image and the rollout, and pushes the
 commit (rebasing once if master moved; never forcing). When it ends, or smelt
 says it restarted: `tail -30 ~/deploy-<SHA>.log ~/deploy-<SHA>.steps`. If the
-script died, `deploy-apply.sh <SHA> --resume`. Exit 3: report the commit sha
-it prints to the user. Exit 5: the apply was interrupted; report, never
+script died, `deploy-apply.sh <SHA> --resume`. Exit 3 is any failure once the
+apply started (the image or rollout check, the push, the rebase, its
+check-commit): report the `commit <sha>` it prints to the user. Exit 5: the apply was interrupted; report, never
 re-apply. From here on `deploy-discard.sh` refuses: don't drop the commit.
 
 ## Don'ts
