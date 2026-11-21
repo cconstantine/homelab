@@ -5,7 +5,9 @@
 # The apply restarts smelt; this script runs on in the pod's terminal. Its
 # record is ~/deploy-<SHA>.log (terraform's output) and ~/deploy-<SHA>.steps,
 # plus the marker <git-dir>/smelt-deploy-<SHA>.applied (the commit, then
-# terraform's exit code), which outlives a lost pod as the commit does.
+# terraform's exit code), which outlives a lost pod as the commit does. Once
+# the push succeeds both are renamed *.pushed-<commit>, so the SHA can be
+# deployed again (a rollback) from this clone.
 # Exits: 3 any failure once the apply has started — the apply itself
 # (terraform apply exiting non-zero), verify, push, rebase, check-commit, and
 # the refusals once one ran (a re-apply, --resume on a HEAD that isn't the
@@ -144,13 +146,23 @@ finish() {
 }
 
 head_ok() { [ "$(git log -1 --format=%s)" = "smelt $SHA" ]; }
+# refuse_if_pushed <what>: exit 1 if this clone already applied and pushed SHA
+# (a retired marker) and no apply has run since.
+refuse_if_pushed() {
+  local done=("$MARK".pushed-*)
+  [ -e "${done[-1]}" ] || return 0
+  fail "$SHA was already applied and pushed from this clone ($(basename "${done[-1]}")): $1"
+}
 
 if [ "$MODE" = --resume ]; then
   step "resume"
   if pgrep -x terraform >/dev/null; then
     echo "a terraform is still running: wait for it, then run --resume again"; exit 4
   fi
-  apply_ran || fail "neither $MARK nor $LOG: no apply ran for $SHA, so there is nothing to resume"
+  if ! apply_ran; then
+    refuse_if_pushed "nothing to resume"
+    fail "neither $MARK nor $LOG: no apply ran for $SHA, so there is nothing to resume"
+  fi
   APPLY_STARTED=1
   head_ok || fail "HEAD's subject isn't 'smelt $SHA', and an apply ran: report; never discard or re-apply"
   [ -e "$LOG" ] || record "note: no $LOG (the pod was lost?); going by $MARK and the cluster"
@@ -169,6 +181,7 @@ fi
 step "preconditions"
 # An apply already ran: exit 3 (the trap), whatever else is true.
 if apply_ran; then APPLY_STARTED=1; fail "an apply already ran: use --resume, never re-apply"; fi
+[ -f "$DIR/smelt.plan" ] || refuse_if_pushed "nothing to apply (a rollback to it starts with prepare)"
 head_ok || fail "HEAD's subject isn't 'smelt $SHA': prepare first"
 [ -f "$DIR/smelt.plan" ] || fail "no $DIR/smelt.plan: prepare first"
 ok "plan $DIR/smelt.plan"

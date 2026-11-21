@@ -75,7 +75,9 @@ apply was interrupted; report, never re-apply. From here on
 (`~` gone, the log with it) discard still refuses. A lost pod also takes
 `~/bin` and `~/.kube`: run `smelt-deployer/deploy-setup.sh` first (it doesn't
 mind the deploy commit at HEAD), then `--resume`, which checks the image and
-rollout and pushes.
+rollout and pushes. After a successful push the marker and the log are
+renamed `*.pushed-<commit>`, so a later deploy of the same SHA (a rollback)
+from this clone starts clean.
 
 **Apply refused** (exit 3, "refused before changing anything (a stale plan or
 a state lock)"): terraform rejected the saved plan, but the scripts can't
