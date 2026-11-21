@@ -1,159 +1,78 @@
 # Deploying smelt to the homelab cluster
 
-These are instructions for an agent running in a smelt sandbox that has this
-repo (github.com/cconstantine/homelab) checked out.
+For an agent in a smelt sandbox with this repo checked out. You deploy by
+applying only `module.smelt` (`smelt.tf`) as the `smelt-deployer`
+ServiceAccount (`main.tf` here), which can change smelt's objects in
+`smelt-park` and this repo's state, and nothing else. Scripts here do the
+mechanical steps; you read what they show and decide.
 
-You deploy smelt by applying only the `smelt` module of this repo
-(`smelt.tf`), as the `smelt-deployer` ServiceAccount (`smelt-deployer/main.tf`).
-That account can change smelt's objects in the `smelt-park` namespace and this
-repo's Terraform state, and nothing else.
+Your brief's pin names which version of these instructions to follow
+(`git show <pin>:smelt-deployer/DEPLOY.md`); the deploy runs on master's tip,
+never a checkout of the pin (SME-474). Applying restarts smelt: your pod, its
+terminals and the running apply survive, and smelt tells you it restarted.
 
-**Your brief's pin names which version of these instructions to follow, not
-what to check out.** Read them at that commit
-(`git show <pin>:smelt-deployer/DEPLOY.md`), but do the deploy itself on
-master's tip, as step 2 says, never on a checkout of the pin: the commit you
-push in step 6 must sit on master's tip (SME-474).
+## 1. Before you start
 
-Applying restarts the smelt server you run under. Your sandbox pod, its
-terminals and their running commands are left alone, and when smelt comes back
-it tells you it restarted during your turn so you can carry on.
+Pick the 12-character smelt `main` SHA; its CI and "Publish images" runs must
+be green (your GitHub tools).
 
-## 1. Pick the image
+## 2. Setup (once per sandbox)
 
-- Use the 12-character SHA of the smelt `main` commit to deploy (e.g. `6480758fa3bd`).
-- Only deploy a commit whose CI and "Publish images" runs are green.
-- Confirm both images exist before going on. Both must print 200:
+    smelt-deployer/deploy-setup.sh
 
-      for img in smelt smelt-sandbox; do
-        T=$(curl -s "https://ghcr.io/token?scope=repository:cconstantine/$img:pull" | python3 -c 'import json,sys;print(json.load(sys.stdin)["token"])')
-        curl -s -o /dev/null -w "$img: %{http_code}\n" -H "Authorization: Bearer $T" \
-          -H "Accept: application/vnd.oci.image.index.v1+json,application/vnd.oci.image.manifest.v1+json" \
-          https://ghcr.io/v2/cconstantine/$img/manifests/<SHA>
-      done
+It installs sha-pinned kubectl and terraform into `~/bin`, installs the deployer
+kubeconfig and checks `whoami`, builds the provider mirror (SME-465: the
+`(unauthenticated)` install lines are expected; the lockfile hashes verify
+them) and inits. It ends `setup: OK …`.
 
-## 2. Set up (once per sandbox)
+## 3. Prepare
 
-- **kubectl** (not in the sandbox image). Match the cluster's version:
+    smelt-deployer/deploy-prepare.sh <SHA> <PIN>
 
-      mkdir -p ~/bin && cd /tmp
-      curl -fsSLO https://dl.k8s.io/release/v1.34.6/bin/linux/amd64/kubectl
-      curl -fsSLO https://dl.k8s.io/release/v1.34.6/bin/linux/amd64/kubectl.sha256
-      echo "$(cat kubectl.sha256)  kubectl" | sha256sum -c -
-      install -m 755 kubectl ~/bin/kubectl
-      export PATH=$HOME/bin:$PATH
+It checks both images, that master is clean at its tip and that
+`smelt-deployer/` hasn't changed since `<PIN>`, commits the three-line
+`smelt.tf` edit locally (SME-663), re-inits, plans `-target=module.smelt` and
+summarises. Then read `~/deploy-<SHA>/summary.txt` and **all of**
+`~/deploy-<SHA>/plan.txt`. Never print `plan.json`: it holds secrets in clear.
+Exit 3 means `smelt.tf` already names that SHA: nothing to deploy.
 
-- **Terraform 1.15.9.** The sandbox has no `unzip`, so Python unpacks it:
+## 4. Decide
 
-      cd /tmp
-      curl -fsSLO https://releases.hashicorp.com/terraform/1.15.9/terraform_1.15.9_linux_amd64.zip
-      curl -fsSLO https://releases.hashicorp.com/terraform/1.15.9/terraform_1.15.9_SHA256SUMS
-      grep linux_amd64.zip terraform_1.15.9_SHA256SUMS | sha256sum -c -
-      python3 -m zipfile -e terraform_1.15.9_linux_amd64.zip ~/bin && chmod +x ~/bin/terraform
-      export PATH=$HOME/bin:$PATH
+`KIND: image-only` is the normal case. A `wider` plan is fine when every change
+is an in-place update you can explain from the module's diff between the old
+and new ref; say what each does. The summary flags; you decide.
 
-- **Kubeconfig.** smelt gives you the deployer kubeconfig as a secret. Install
-  it as `~/.kube/config` (`mkdir -p ~/.kube && chmod 700 ~/.kube`, file mode
-  600). Its context must stay named `default`: this repo's provider and backend
-  select that name. Check you are the deployer; it must print
-  `system:serviceaccount:smelt-deploy:smelt-deployer`:
+## 5. Stop and report, without applying
 
-      kubectl auth whoami -o jsonpath='{.status.userInfo.username}'
+- any `OUTSIDE_MODULE`, `DELETE`, `REPLACE`, `FORGET` or `GUARDED` flag;
+- `HARD STOP: prevent_destroy` (SME-664 guards the database and namespace);
+- `REF_MISMATCH`, `NOT_APPLYABLE`, `ERRORED`, `DEFERRED`;
+- a `wider` change you can't explain;
+- `Forbidden`, a whoami mismatch, a missing image, a short pin count, the pin
+  check failing, or any script exiting non-zero.
 
-- **Up to date.** In this repo: `git checkout master && git pull --ff-only`.
+A state lock: wait and retry prepare. After a stop:
+`smelt-deployer/deploy-discard.sh <SHA>`.
 
-- **Unused variables.** The root variables with no default must be set to
-  something; the smelt module uses none of them:
+## 6. Apply
 
-      export TF_VAR_cloudflare_api_token=unused TF_VAR_cloudflare_account_id=unused \
-             TF_VAR_github_pat=unused TF_VAR_github_pat_smelt=unused
+Say in one line that the deploy is starting and smelt will restart, then:
 
-- **Provider mirror (SME-465).** Providers downloaded from GitHub release assets
-  ride a host that intermittently 504s for hours. Which ones is auto-detected
-  from `.terraform.lock.hcl` — every provider whose registry download URL is on
-  github.com (three as of today) — so there is no list here to keep in sync.
-  Build the verified mirror first, then init through it — always, not only when
-  downloads seem broken:
+    smelt-deployer/deploy-apply.sh <SHA>
 
-      python3 smelt-deployer/tf_provider_mirror.py
-      export TF_CLI_CONFIG_FILE=$HOME/deploy.tfrc
-      terraform init -input=false
-
-  The script fetches those providers via the GitHub API asset endpoint, checks every
-  zip against `.terraform.lock.hcl`'s `zh:` hashes, and writes `~/deploy.tfrc`,
-  which pins init to the mirror for exactly those providers (others go direct).
-  The run must end with the expected pin count: its last line reads
-  `3 provider(s) pinned to the mirror` (the count as of today; the mechanism
-  auto-detects) — a missing line or a smaller count is stop-and-report. Their
-  install lines read `(unauthenticated)` — expected; the lockfile checksum is the
-  verification. A non-zero exit is stop-and-report like everything else here; do
-  not fall back to bare init or retry-until-green.
-
-## 3. Change the image
-
-- In `smelt.tf`, set three lines to the new SHA: the module `source`'s
-  `?ref=`, `image` and `sandbox_image` (SME-663). Change nothing else.
-- Commit locally: `git commit -am "smelt <SHA>"`. Don't push yet.
-- Run `terraform init -input=false` again (`TF_CLI_CONFIG_FILE` from step 2
-  must still be set): a changed ref needs it. Its output must show
-  `Downloading git::ssh://git@github.com/cconstantine/smelt.git?ref=<SHA> for smelt...`.
-
-## 4. Plan, and check the plan
-
-    terraform plan -target=module.smelt -input=false -out=smelt.plan
-
-Stop and report, without applying, if any of these is true:
-
-- The plan touches anything outside `module.smelt.*`.
-- It destroys or replaces anything (`-/+`, `destroy`). Above all, never apply
-  one that replaces `kubernetes_stateful_set_v1.database`,
-  `kubernetes_secret_v1.database`, `random_password.database` or
-  `kubernetes_namespace_v1.park`: that loses smelt's database.
-- It fails with `Forbidden`.
-
-An image change normally updates `kubernetes_deployment_v1.smelt` in place. It
-may also update the database StatefulSet or other module objects if the module
-changed between the old and new ref. Say what the plan does before applying it.
-
-## 5. Apply
-
-Keep a copy of the output in a file: your view of the command's output may drop
-while smelt restarts.
-
-    terraform apply -input=false smelt.plan 2>&1 | tee ~/deploy-<SHA>.log
-
-Before you run it, say in one line that the deploy is starting and that smelt
-will restart.
-
-## 6. Check it
-
-When the command finishes, or when smelt says it restarted during your turn:
-
-- `tail -30 ~/deploy-<SHA>.log` must end with `Apply complete!`. If the log
-  stops without that line and `pgrep terraform` finds nothing, the apply was
-  interrupted. Run `terraform plan -target=module.smelt` again and report
-  what's still pending; don't re-apply the old plan file (it's stale).
-- The running server must be the new image:
-
-      kubectl -n smelt-park get deploy smelt -o jsonpath='{.spec.template.spec.containers[0].image}'
-      kubectl -n smelt-park rollout status deploy/smelt
-
-- On success, push the commit (`git push origin HEAD:master`) so the repo
-  matches the cluster. Otherwise the next full apply from the repo rolls smelt
-  back. If the push is refused as non-fast-forward, fetch,
-  rebase only your one `smelt.tf` commit onto `origin/master`
-  (`git fetch origin && git rebase origin/master`), check that its diff is still
-  just the `ref`, `image` and `sandbox_image` lines, and push once more. If the rebase
-  conflicts (another deploy moved those lines: `git rebase --abort`) or the push
-  fails again, report the commit to the user rather than dropping it. Never force-push.
-- On failure, report the log tail.
+It applies the saved plan, checks the image and the rollout, and pushes the
+commit (rebasing once if master moved; never forcing). When it ends, or smelt
+says it restarted: `tail -30 ~/deploy-<SHA>.log ~/deploy-<SHA>.steps`. If the
+script died, `deploy-apply.sh <SHA> --resume`. Exit 3: report the commit sha
+it prints to the user. Exit 5: the apply was interrupted; report, never
+re-apply.
 
 ## Don'ts
 
-- Only ever change `smelt.tf`, and only ever run Terraform with
-  `-target=module.smelt`. No `destroy`, and no `terraform state` commands.
-- If a plan or apply reports `Error acquiring the state lock`, someone else is
-  running Terraform. Wait and retry; never use `-lock=false` or `force-unlock`.
-- Never edit, drop or re-record `.terraform.lock.hcl` hashes to make a download
-  pass — the mirror is verified by those hashes, not around them.
-- Don't recreate your own sandbox pod during a deploy.
+- Only `smelt.tf`, only `-target=module.smelt`; no `destroy`, no
+  `terraform state`.
+- Never `-lock=false` or `force-unlock`.
+- Never edit or re-record `.terraform.lock.hcl` hashes.
+- Don't recreate your pod during a deploy.
 - Never print, log or commit the kubeconfig or its token.
+- Never run terraform by hand past a script's failure to "finish" a step.
