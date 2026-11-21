@@ -19,6 +19,8 @@ FIX = os.path.join(HERE, "fixtures")
 SCRIPT = os.path.join(os.path.dirname(HERE), "smelt_tf.py")
 NEW = "0123456789ab"
 OLD = "59360208c47e"
+HTTPS = "git::https://github.com/cconstantine/smelt.git//terraform/smelt"
+SSH = "git::ssh://git@github.com/cconstantine/smelt.git//terraform/smelt"  # after SME-677
 
 
 def read(path):
@@ -51,7 +53,7 @@ class SetTest(unittest.TestCase):
                 f.write(text)
         return path
 
-    def assert_three_lines_set(self, fixture, old_ref):
+    def assert_three_lines_set(self, fixture, old_ref, source=HTTPS):
         path = self.copy(fixture)
         before = read(path)
         smelt_tf.set_sha(path, NEW)
@@ -59,7 +61,7 @@ class SetTest(unittest.TestCase):
         rem, add = changed_lines(before, after)
         self.assertEqual(len(rem), 3, rem)
         self.assertEqual(add, [
-            '  source = "git::https://github.com/cconstantine/smelt.git//terraform/smelt?ref=%s"' % NEW,
+            '  source = "%s?ref=%s"' % (source, NEW),
             '  image         = "ghcr.io/cconstantine/smelt:%s"' % NEW,
             '  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:%s"' % NEW,
         ])
@@ -71,6 +73,10 @@ class SetTest(unittest.TestCase):
 
     def test_set_rewrites_exactly_three_lines_of_sme663s_ref_sha_shape(self):
         self.assert_three_lines_set("smelt.tf.ref-sha", OLD)
+
+    def test_set_rewrites_exactly_three_lines_of_an_ssh_source(self):
+        # SME-677 moves the source to git::ssh://; the form is kept, only the ref moves.
+        self.assert_three_lines_set("smelt.tf.ref-ssh", OLD, source=SSH)
 
     def test_set_twice_says_already_at_and_leaves_the_file_alone(self):
         path = self.copy("smelt.tf.ref-sha")
@@ -138,6 +144,14 @@ class CheckCommitTest(unittest.TestCase):
 
     def test_accepts_the_saved_real_diff(self):
         smelt_tf.check_diff(read(os.path.join(FIX, "commit-three-lines.diff")), NEW)
+
+    def test_accepts_the_three_line_diff_of_an_ssh_source(self):
+        smelt_tf.check_diff(read(os.path.join(FIX, "commit-three-lines-ssh.diff")), NEW)
+
+    def test_refuses_a_diff_that_changes_the_sources_form(self):
+        # https -> ssh in a deploy commit is SME-677's change, not a deploy's.
+        with self.assertRaisesRegex(smelt_tf.EditError, "source"):
+            smelt_tf.check_diff(read(os.path.join(FIX, "commit-source-form-changed.diff")), NEW)
 
     def test_refuses_a_diff_touching_another_line(self):
         bad = GOOD_DIFF + "@@ -26 +26 @@\n-  storage_reader_enabled = true\n+  storage_reader_enabled = false\n"

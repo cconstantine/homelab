@@ -5,14 +5,16 @@
     python3 -I smelt-deployer/smelt_tf.py check-commit <SHA> [--diff FILE]
 
 `set` rewrites exactly three lines of smelt.tf to <SHA> (SME-663): the module
-source's `?ref=`, `image` and `sandbox_image`. Each is found by an anchored
+source's `?ref=` (an https or, after SME-677, an ssh git source; the form is
+kept), `image` and `sandbox_image`. Each is found by an anchored
 pattern that must match exactly one line; a missing or doubled line fails
 without writing anything. Whitespace is kept. If all three already name <SHA>
 it says "already at <SHA>" and exits 3 (nothing to deploy).
 
 `check-commit` reads HEAD's diff (`git show -U0 --format= HEAD`, or --diff)
 and accepts it only if it touches smelt.tf alone, and only those lines (one or
-more of the three), each set to <SHA>. Exit 0 accepted, 1 refused.
+more of the three), each set to <SHA> with the rest of the line unchanged.
+Exit 0 accepted, 1 refused.
 """
 
 import argparse
@@ -25,7 +27,7 @@ SHA_RE = re.compile(r"^[0-9a-f]{12}$")
 # (name, pattern): group 1 is everything before the value, 2 the value, 3 the rest.
 LINES = (
     ("source", re.compile(
-        r'^(\s*source\s*=\s*"git::https://github\.com/cconstantine/smelt\.git'
+        r'^(\s*source\s*=\s*"git::(?:https://|ssh://git@)github\.com/cconstantine/smelt\.git'
         r'//terraform/smelt\?ref=)([^"\s]+)("\s*)$')),
     ("image", re.compile(
         r'^(\s*image\s*=\s*"ghcr\.io/cconstantine/smelt:)([^"\s]+)("\s*)$')),
@@ -80,11 +82,12 @@ LINES_BY_NAME = dict(LINES)
 
 
 def which(line):
+    """(name, value, the line without its value) for one of the three lines."""
     for name, pat in LINES:
         m = pat.match(line)
         if m:
-            return name, m.group(2)
-    return None, None
+            return name, m.group(2), (m.group(1), m.group(3))
+    return None, None, None
 
 
 def check_diff(text, sha):
@@ -101,16 +104,20 @@ def check_diff(text, sha):
         if line.startswith(("---", "+++")) or not line[:1] in ("-", "+"):
             continue
         body = line[1:]
-        name, value = which(body)
+        name, value, rest = which(body)
         if name is None:
             raise EditError("the commit changes a line that isn't one of the three: %s" % body.strip())
         side = removed if line[0] == "-" else added
         if name in side:
             raise EditError("the commit changes the %s line twice" % name)
-        side[name] = value
+        side[name] = (value, rest)
     if set(removed) != set(added) or not added:
         raise EditError("the commit's removed lines (%s) and added lines (%s) don't pair up"
                         % (", ".join(sorted(removed)) or "none", ", ".join(sorted(added)) or "none"))
+    moved = sorted(n for n in added if added[n][1] != removed[n][1])
+    if moved:
+        raise EditError("the commit changes more than the value of the %s line(s)" % ", ".join(moved))
+    added = {n: v for n, (v, _) in added.items()}
     wrong = ["%s=%s" % (n, v) for n, v in sorted(added.items()) if v != sha]
     if wrong:
         raise EditError("the commit sets a line to something other than %s: %s" % (sha, ", ".join(wrong)))
