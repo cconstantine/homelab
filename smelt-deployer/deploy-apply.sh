@@ -122,9 +122,23 @@ push() {
   record "OK pushed $(git rev-parse HEAD)"
 }
 
+# Once the commit is on origin master the marker has nothing left to guard
+# (discard refuses a pushed commit anyway): rename it and the log, keeping the
+# record, so a later deploy of this SHA (a rollback) in this clone isn't taken
+# for a re-apply. Only after the push: a run that dies before this leaves the
+# marker, and --resume pushes (a no-op) and renames.
+retire() {
+  local suffix
+  suffix="pushed-$(git rev-parse --short=12 HEAD)"
+  mv "$MARK" "$MARK.$suffix" 2>/dev/null || true
+  mv "$LOG" "$LOG.$suffix" 2>/dev/null || true
+  record "marker and log renamed to *.$suffix"
+}
+
 finish() {
   verify
   push
+  retire
   rm -f "$DIR/smelt.plan" "$DIR/plan.json"
   record "apply: OK $SHA pushed $(git rev-parse --short=12 HEAD)"
 }
