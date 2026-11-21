@@ -51,8 +51,9 @@ and new ref; say what each does. The summary flags; you decide.
 - `Forbidden`, a whoami mismatch, a missing image, a short pin count, the pin
   check failing, or any script exiting non-zero.
 
-A state lock: wait and retry prepare. After a stop:
-`smelt-deployer/deploy-discard.sh <SHA>`.
+A state lock: wait and retry prepare. After a stop here, before any apply:
+`smelt-deployer/deploy-discard.sh <SHA>`. Never discard once the apply has
+started (it refuses): the commit is the record of what the cluster runs.
 
 ## 6. Apply
 
@@ -65,7 +66,7 @@ commit (rebasing once if master moved; never forcing). When it ends, or smelt
 says it restarted: `tail -30 ~/deploy-<SHA>.log ~/deploy-<SHA>.steps`. If the
 script died, `deploy-apply.sh <SHA> --resume`. Exit 3: report the commit sha
 it prints to the user. Exit 5: the apply was interrupted; report, never
-re-apply.
+re-apply. From here on `deploy-discard.sh` refuses: don't drop the commit.
 
 ## Don'ts
 
