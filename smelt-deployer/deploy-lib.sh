@@ -16,12 +16,8 @@ export TF_VAR_cloudflare_api_token=unused TF_VAR_cloudflare_account_id=unused \
        TF_VAR_github_pat=unused TF_VAR_github_pat_smelt=unused
 # The provider mirror's CLI config (SME-465), written by tf_provider_mirror.py.
 export TF_CLI_CONFIG_FILE="$HOME/deploy.tfrc"
-# The smelt repo is private and smelt.tf sources the module over https: fetch
-# it over SSH with the deployer's git key, for these processes only (no global
-# git config change).
-export GIT_CONFIG_COUNT=1
-export GIT_CONFIG_KEY_0=url.git@github.com:cconstantine/smelt.git.insteadOf
-export GIT_CONFIG_VALUE_0=https://github.com/cconstantine/smelt.git
+# smelt.tf sources the private smelt module over git::ssh:// (SME-663), so
+# init fetches it with the deployer's git-ssh key; no git config is needed.
 
 REPO=$(git -C "$(dirname "$0")" rev-parse --show-toplevel)
 cd "$REPO" || exit 1
