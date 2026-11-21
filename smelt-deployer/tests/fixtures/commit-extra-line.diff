@@ -1,0 +1,15 @@
+diff --git a/smelt.tf b/smelt.tf
+index f9167d5..8875263 100644
+--- a/smelt.tf
++++ b/smelt.tf
+@@ -17 +17 @@ module "smelt" {
+-  source = "git::https://github.com/cconstantine/smelt.git//terraform/smelt?ref=59360208c47e"
++  source = "git::https://github.com/cconstantine/smelt.git//terraform/smelt?ref=0123456789ab"
+@@ -19,2 +19,2 @@ module "smelt" {
+-  image         = "ghcr.io/cconstantine/smelt:59360208c47e"
+-  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:59360208c47e"
++  image         = "ghcr.io/cconstantine/smelt:0123456789ab"
++  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:0123456789ab"
+@@ -26 +26 @@ module "smelt" {
+-  storage_reader_enabled = true
++  storage_reader_enabled = false
