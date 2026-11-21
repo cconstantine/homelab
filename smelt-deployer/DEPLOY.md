@@ -69,7 +69,10 @@ apply started (the image or rollout check, the push, the rebase, its
 check-commit): report the `commit <sha>` it prints to the user. Exit 4 (from
 `--resume`): a terraform is still running; wait for it, then `--resume`
 again. Exit 5: the apply was interrupted; report, never re-apply. From here
-on `deploy-discard.sh` refuses: don't drop the commit.
+on `deploy-discard.sh` refuses: don't drop the commit. The apply's marker,
+`.git/smelt-deploy-<SHA>.applied`, sits beside the commit, so after a lost pod
+(`~` gone, the log with it) discard still refuses and `--resume` still checks
+the image and rollout and pushes.
 
 ## Don'ts
 

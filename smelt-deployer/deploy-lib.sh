@@ -56,3 +56,9 @@ deploy_dir() {
 }
 
 sha256_of() { sha256sum "$1" | cut -d' ' -f1; }
+
+# The "an apply ran" marker lives beside the deploy commit, in the clone's git
+# dir under /workspace, not in $HOME: a lost pod takes $HOME (and the log)
+# with it, but the commit, and so this record, survive. Written by apply when
+# it starts, checked by discard and --resume.
+applied_mark() { echo "$(git rev-parse --absolute-git-dir)/smelt-deploy-$1.applied"; }

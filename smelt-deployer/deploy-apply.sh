@@ -3,7 +3,9 @@
 #   smelt-deployer/deploy-apply.sh <SHA>            after the "smelt will restart" notice
 #   smelt-deployer/deploy-apply.sh <SHA> --resume   when the first run died
 # The apply restarts smelt; this script runs on in the pod's terminal. Its
-# record is ~/deploy-<SHA>.log (terraform's output) and ~/deploy-<SHA>.steps.
+# record is ~/deploy-<SHA>.log (terraform's output) and ~/deploy-<SHA>.steps,
+# plus the marker <git-dir>/smelt-deploy-<SHA>.applied (the commit, then
+# terraform's exit code), which outlives a lost pod as the commit does.
 # Exits: 3 any failure once the apply has started — verify, push, rebase,
 # check-commit — with "commit <sha>" printed: report that sha to the user;
 # 4 a terraform is still running (wait, then --resume); 5 the apply was
@@ -21,9 +23,17 @@ case "$MODE" in "" | --resume) ;; *) fail "usage: deploy-apply.sh <SHA> [--resum
 DIR="$HOME/deploy-$SHA"
 LOG="$HOME/deploy-$SHA.log"
 STEPS="$HOME/deploy-$SHA.steps"
+MARK=$(applied_mark "$SHA")
 IMAGE="ghcr.io/cconstantine/smelt:$SHA"
 
 record() { echo "$(date -u +%FT%TZ) $*" | tee -a "$STEPS"; }
+# An apply ran (or started) for SHA: the marker, or the log from before it.
+apply_ran() { [ -e "$MARK" ] || [ -e "$LOG" ]; }
+# terraform apply finished with exit 0: the log says so, or (the log lost
+# with the pod) the marker does.
+apply_completed() {
+  grep -qs '^Apply complete!' "$LOG" || grep -qsx 'terraform apply exited 0' "$MARK"
+}
 
 # Once the apply has started the cluster may run <SHA> while homelab master
 # doesn't say so yet: whatever fails after that point, by fail() or by set -e,
@@ -40,8 +50,8 @@ trap on_exit EXIT
 
 verify() {
   step "verify"
-  grep -q '^Apply complete!' "$LOG" || { record "FAIL no 'Apply complete!' in $LOG"; fail "the apply didn't complete (see $LOG)"; }
-  record "OK Apply complete! in the log"
+  apply_completed || { record "FAIL no 'Apply complete!' in $LOG or $MARK"; fail "the apply didn't complete (see $LOG)"; }
+  record "OK the apply completed"
   local got
   got=$(kubectl -n smelt-park get deploy smelt -o jsonpath='{.spec.template.spec.containers[0].image}') ||
     { record "FAIL kubectl get deploy"; fail "kubectl get deploy smelt failed"; }
@@ -106,9 +116,10 @@ if [ "$MODE" = --resume ]; then
   if pgrep -x terraform >/dev/null; then
     echo "a terraform is still running: wait for it, then run --resume again"; exit 4
   fi
-  [ -f "$LOG" ] || fail "no $LOG: no apply ran for $SHA, so there is nothing to resume"
+  apply_ran || fail "neither $MARK nor $LOG: no apply ran for $SHA, so there is nothing to resume"
   APPLY_STARTED=1
-  if ! grep -q '^Apply complete!' "$LOG"; then
+  [ -e "$LOG" ] || record "note: no $LOG (the pod was lost?); going by $MARK and the cluster"
+  if ! apply_completed; then
     record "apply interrupted"
     echo "apply interrupted: report; never re-apply"
     exit 5
@@ -125,11 +136,13 @@ ok "plan $DIR/smelt.plan"
 
 step "terraform apply"
 record "apply started"
+echo "commit $(git rev-parse HEAD)" >"$MARK"
 APPLY_STARTED=1
 set +e
 terraform apply -input=false -no-color "$DIR/smelt.plan" 2>&1 | tee "$LOG"
 rc=${PIPESTATUS[0]}
 set -e
 record "terraform apply exited $rc"
+echo "terraform apply exited $rc" >>"$MARK"
 [ "$rc" -eq 0 ] || fail "terraform apply exited $rc: report the end of $LOG; never re-apply"
 finish
