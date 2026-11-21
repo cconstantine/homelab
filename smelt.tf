@@ -12,6 +12,8 @@
 # module source's `?ref=`, `image` and `sandbox_image`, so the module code and
 # the images always come from one commit (SME-663). A changed ref needs
 # `terraform init` again before the plan.
+# The smelt repo is private: the module is fetched over SSH, so `terraform
+# init` needs a GitHub key with read access to cconstantine/smelt.
 
 module "smelt" {
   source = "git::ssh://git@github.com/cconstantine/smelt.git//terraform/smelt?ref=da513c7fdd37"
