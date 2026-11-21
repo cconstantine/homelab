@@ -48,6 +48,19 @@ on_exit() {
 }
 trap on_exit EXIT
 
+# terraform apply exited non-zero: name the case where it refused before
+# changing anything (a stale saved plan, a state lock). Still exit 3: the
+# script can't prove nothing changed, so only the user clears it.
+apply_failed() {
+  local rc=$1
+  if grep -qE 'Saved plan is stale|Error acquiring the state lock' "$LOG" 2>/dev/null &&
+     ! grep -qE ': (Creating|Modifying|Destroying)\.\.\.' "$LOG"; then
+    record "FAIL apply refused before changing anything"
+    fail "terraform apply exited $rc, refused before changing anything (a stale plan or a state lock): report; the user clears it (DEPLOY.md §6, apply refused); never re-apply"
+  fi
+  fail "terraform apply exited $rc: report the end of $LOG; never re-apply"
+}
+
 verify() {
   step "verify"
   apply_completed || { record "FAIL no 'Apply complete!' in $LOG or $MARK"; fail "the apply didn't complete (see $LOG)"; }
@@ -119,6 +132,8 @@ if [ "$MODE" = --resume ]; then
   apply_ran || fail "neither $MARK nor $LOG: no apply ran for $SHA, so there is nothing to resume"
   APPLY_STARTED=1
   [ -e "$LOG" ] || record "note: no $LOG (the pod was lost?); going by $MARK and the cluster"
+  rc=$(sed -n 's/^terraform apply exited \([0-9]*\)$/\1/p' "$MARK" 2>/dev/null || true)
+  if [ -n "$rc" ] && [ "$rc" -ne 0 ]; then apply_failed "$rc"; fi
   if ! apply_completed; then
     record "apply interrupted"
     echo "apply interrupted: report; never re-apply"
@@ -144,5 +159,5 @@ rc=${PIPESTATUS[0]}
 set -e
 record "terraform apply exited $rc"
 echo "terraform apply exited $rc" >>"$MARK"
-[ "$rc" -eq 0 ] || fail "terraform apply exited $rc: report the end of $LOG; never re-apply"
+[ "$rc" -eq 0 ] || apply_failed "$rc"
 finish

@@ -74,6 +74,14 @@ on `deploy-discard.sh` refuses: don't drop the commit. The apply's marker,
 (`~` gone, the log with it) discard still refuses and `--resume` still checks
 the image and rollout and pushes.
 
+**Apply refused** (exit 3, "refused before changing anything (a stale plan or
+a state lock)"): terraform rejected the saved plan, but the scripts can't
+prove nothing changed, so apply, `--resume`, discard and prepare all refuse.
+Report it with the end of the log. The user, having checked that the log has
+no `Creating...`, `Modifying...` or `Destroying...` line, clears it:
+`rm .git/smelt-deploy-<SHA>.applied ~/deploy-<SHA>.log`. Then
+`deploy-discard.sh <SHA>` and prepare again; never clear it yourself.
+
 ## Don'ts
 
 - Only `smelt.tf`, only `-target=module.smelt`; no `destroy`, no
