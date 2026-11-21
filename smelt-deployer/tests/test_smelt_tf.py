@@ -20,7 +20,7 @@ SCRIPT = os.path.join(os.path.dirname(HERE), "smelt_tf.py")
 NEW = "0123456789ab"
 OLD = "59360208c47e"
 HTTPS = "git::https://github.com/cconstantine/smelt.git//terraform/smelt"
-SSH = "git::ssh://git@github.com/cconstantine/smelt.git//terraform/smelt"  # after SME-677
+SSH = "git::ssh://git@github.com/cconstantine/smelt.git//terraform/smelt"  # SME-663's source
 
 
 def read(path):
@@ -75,7 +75,7 @@ class SetTest(unittest.TestCase):
         self.assert_three_lines_set("smelt.tf.ref-sha", OLD)
 
     def test_set_rewrites_exactly_three_lines_of_an_ssh_source(self):
-        # SME-677 moves the source to git::ssh://; the form is kept, only the ref moves.
+        # SME-663 moved the source to git::ssh://; the form is kept, only the ref moves.
         self.assert_three_lines_set("smelt.tf.ref-ssh", OLD, source=SSH)
 
     def test_set_twice_says_already_at_and_leaves_the_file_alone(self):
@@ -149,7 +149,7 @@ class CheckCommitTest(unittest.TestCase):
         smelt_tf.check_diff(read(os.path.join(FIX, "commit-three-lines-ssh.diff")), NEW)
 
     def test_refuses_a_diff_that_changes_the_sources_form(self):
-        # https -> ssh in a deploy commit is SME-677's change, not a deploy's.
+        # https -> ssh in a deploy commit is SME-663's change, not a deploy's.
         with self.assertRaisesRegex(smelt_tf.EditError, "source"):
             smelt_tf.check_diff(read(os.path.join(FIX, "commit-source-form-changed.diff")), NEW)
 

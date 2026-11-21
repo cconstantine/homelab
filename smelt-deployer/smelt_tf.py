@@ -5,8 +5,8 @@
     python3 -I smelt-deployer/smelt_tf.py check-commit <SHA> [--diff FILE]
 
 `set` rewrites exactly three lines of smelt.tf to <SHA> (SME-663): the module
-source's `?ref=` (an https or, after SME-677, an ssh git source; the form is
-kept), `image` and `sandbox_image`. Each is found by an anchored
+source's `?ref=` (an ssh git source, as SME-663 made it, or an https one; the
+form is kept), `image` and `sandbox_image`. Each is found by an anchored
 pattern that must match exactly one line; a missing or doubled line fails
 without writing anything. Whitespace is kept. If all three already name <SHA>
 it says "already at <SHA>" and exits 3 (nothing to deploy).
