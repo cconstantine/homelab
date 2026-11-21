@@ -7,7 +7,7 @@
 # Exits: 3 any failure once the apply has started — verify, push, rebase,
 # check-commit — with "commit <sha>" printed: report that sha to the user;
 # 4 a terraform is still running (wait, then --resume); 5 the apply was
-# interrupted (plan again and report; never re-apply); 1 a failure before the
+# interrupted (report; never re-apply); 1 a failure before the
 # apply started (nothing applied).
 set -euo pipefail
 trap '' HUP
@@ -110,7 +110,7 @@ if [ "$MODE" = --resume ]; then
   APPLY_STARTED=1
   if ! grep -q '^Apply complete!' "$LOG"; then
     record "apply interrupted"
-    echo "apply interrupted: run terraform plan -target=module.smelt again and report; never re-apply"
+    echo "apply interrupted: report; never re-apply"
     exit 5
   fi
   record "resume: the apply completed; verifying and pushing"
