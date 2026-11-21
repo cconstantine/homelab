@@ -171,6 +171,32 @@ class RealPlansTest(unittest.TestCase):
         self.assertIn(C, s["flags"][0])
         self.assertIn("FLAG: REF_MISMATCH", text)
 
+    def with_source(self, source):
+        """image-only.json with the smelt module call's source replaced, as
+        `terraform show -json` writes it for a git::ssh:// source (SME-663's
+        final form: the literal source, //subdir included)."""
+        with open(fixture("image-only.json"), encoding="utf-8") as f:
+            plan = json.load(f)
+        plan["configuration"]["root_module"]["module_calls"]["smelt"]["source"] = source
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp)
+        path = os.path.join(tmp, "ssh.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(plan, f)
+        j = run(path, D, "--json")
+        self.assertEqual(j.returncode, 0, j.stderr)
+        return json.loads(j.stdout)
+
+    def test_an_ssh_source_at_the_sha_is_image_only_with_no_ref_mismatch(self):
+        s = self.with_source("git::ssh://git@github.com/cconstantine/smelt.git//terraform/smelt?ref=%s" % D)
+        self.assertEqual(s["flags"], [])
+        self.assertEqual(s["kind"], "image-only")
+        self.assertTrue(s["header"]["module_source"].startswith("git::ssh://"))
+
+    def test_an_ssh_source_at_another_sha_is_a_ref_mismatch(self):
+        s = self.with_source("git::ssh://git@github.com/cconstantine/smelt.git//terraform/smelt?ref=%s" % C)
+        self.assertEqual([f.split()[0] for f in s["flags"]], ["REF_MISMATCH"])
+
     def test_the_header_names_the_module_source(self):
         s, text = summary("image-only.json")
         self.assertIn("?ref=%s" % D, s["header"]["module_source"])
