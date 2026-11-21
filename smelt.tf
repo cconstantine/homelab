@@ -42,8 +42,12 @@ module "smelt" {
   extra_env = {
     OTEL_EXPORTER_OTLP_ENDPOINT = module.monitoring.tempo_otlp_http_endpoint
     SANDBOX_NODE_SELECTOR       = "kubernetes.io/arch=amd64"
-    # Sandbox storage ages out on smelt's grace defaults (7 days for ordinary
-    # stops, 1 for finished agents, 30 for the user's Stop, SME-521): the
+    # Ordinary stops' storage ages out after 2 days rather than smelt's
+    # default 7 (the user, 2026-11-21, SME-684: framework's disk filled with
+    # week-old Driver volumes); finished agents keep the 1-day default and
+    # the user's Stop 30 (SME-521).
+    SANDBOX_STORAGE_REMOVAL_DAYS = "2"
+    # Sandbox storage claims: the
     # claims take the cluster's default class — k3s's stock local-path, a
     # Delete reclaim with a provisioner, unlike the hand-made PVs behind the
     # no-provisioner local-storage class other workloads use — and
