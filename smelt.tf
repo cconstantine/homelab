@@ -44,9 +44,11 @@ module "smelt" {
     SANDBOX_NODE_SELECTOR       = "kubernetes.io/arch=amd64"
     # Ordinary stops' storage ages out after 2 days rather than smelt's
     # default 7 (the user, 2026-11-21, SME-684: framework's disk filled with
-    # week-old Driver volumes); finished agents keep the 1-day default and
-    # the user's Stop 30 (SME-521).
-    SANDBOX_STORAGE_REMOVAL_DAYS = "2"
+    # week-old Driver volumes); finished agents keep the 1-day default.
+    # The user's Stop, and pre-SME-521 stops whose cause can't be told,
+    # also get 2 days rather than 30 (the user, 2026-11-21).
+    SANDBOX_STORAGE_REMOVAL_DAYS      = "2"
+    SANDBOX_USER_STOPPED_STORAGE_DAYS = "2"
     # Sandbox storage claims: the
     # claims take the cluster's default class — k3s's stock local-path, a
     # Delete reclaim with a provisioner, unlike the hand-made PVs behind the
