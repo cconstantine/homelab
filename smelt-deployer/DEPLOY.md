@@ -77,10 +77,13 @@ the image and rollout and pushes.
 **Apply refused** (exit 3, "refused before changing anything (a stale plan or
 a state lock)"): terraform rejected the saved plan, but the scripts can't
 prove nothing changed, so apply, `--resume`, discard and prepare all refuse.
-Report it with the end of the log. The user, having checked that the log has
-no `Creating...`, `Modifying...` or `Destroying...` line, clears it:
-`rm .git/smelt-deploy-<SHA>.applied ~/deploy-<SHA>.log`. Then
-`deploy-discard.sh <SHA>` and prepare again; never clear it yourself.
+Report it with the end of the log. Only after that named message, the user
+(never you) runs `smelt-deployer/deploy-clear-refused.sh <SHA>`, then
+`deploy-discard.sh <SHA>`, then prepare again. The clear refuses and touches
+nothing unless the log exists, says `Saved plan is stale` or `Error acquiring
+the state lock`, and has no `Creating...`, `Modifying...` or `Destroying...`
+line. With no log (a lost pod) nothing proves the cluster is unchanged: never
+clear, report the commit.
 
 ## Don'ts
 

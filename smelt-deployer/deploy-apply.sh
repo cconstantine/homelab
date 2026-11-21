@@ -63,7 +63,7 @@ apply_failed() {
   if grep -qE 'Saved plan is stale|Error acquiring the state lock' "$LOG" 2>/dev/null &&
      ! grep -qE ': (Creating|Modifying|Destroying)\.\.\.' "$LOG"; then
     record "FAIL apply refused before changing anything"
-    fail "terraform apply exited $rc, refused before changing anything (a stale plan or a state lock): report; the user clears it (DEPLOY.md §6, apply refused); never re-apply"
+    fail "terraform apply exited $rc, refused before changing anything (a stale plan or a state lock): report; only the user clears it, with deploy-clear-refused.sh (DEPLOY.md §6, apply refused); never re-apply"
   fi
   fail "terraform apply exited $rc: report the end of $LOG; never re-apply"
 }
