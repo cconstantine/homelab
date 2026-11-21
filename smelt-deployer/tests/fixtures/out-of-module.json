@@ -1,0 +1,4043 @@
+{
+ "applyable": true,
+ "complete": false,
+ "configuration": {
+  "root_module": {
+   "module_calls": {
+    "monitoring": {
+     "source": "./monitoring"
+    },
+    "smelt": {
+     "source": "git::https://github.com/cconstantine/smelt.git//terraform/smelt?ref=8494afbafc47"
+    }
+   }
+  }
+ },
+ "errored": false,
+ "format_version": "1.2",
+ "resource_changes": [
+  {
+   "address": "module.monitoring.kubernetes_config_map_v1.tempo",
+   "change": {
+    "actions": [
+     "update"
+    ],
+    "after": {
+     "binary_data": {},
+     "data": {
+      "tempo.yaml": "v2"
+     },
+     "id": "monitoring/tempo",
+     "immutable": false,
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 0,
+       "labels": {},
+       "name": "tempo",
+       "namespace": "monitoring",
+       "resource_version": "774",
+       "uid": "55488c40-c117-43bf-acfa-b4ce6b9ede02"
+      }
+     ]
+    },
+    "after_identity": {
+     "api_version": "v1",
+     "kind": "ConfigMap",
+     "name": "tempo",
+     "namespace": "monitoring"
+    },
+    "after_sensitive": {
+     "binary_data": {},
+     "data": {},
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ]
+    },
+    "after_unknown": {},
+    "before": {
+     "binary_data": {},
+     "data": {
+      "tempo.yaml": "v1"
+     },
+     "id": "monitoring/tempo",
+     "immutable": false,
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 0,
+       "labels": {},
+       "name": "tempo",
+       "namespace": "monitoring",
+       "resource_version": "774",
+       "uid": "55488c40-c117-43bf-acfa-b4ce6b9ede02"
+      }
+     ]
+    },
+    "before_identity": {
+     "api_version": "v1",
+     "kind": "ConfigMap",
+     "name": "tempo",
+     "namespace": "monitoring"
+    },
+    "before_sensitive": {
+     "binary_data": {},
+     "data": {},
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ]
+    }
+   },
+   "mode": "managed",
+   "module_address": "module.monitoring",
+   "name": "tempo",
+   "provider_name": "registry.terraform.io/hashicorp/kubernetes",
+   "type": "kubernetes_config_map_v1"
+  },
+  {
+   "address": "module.monitoring.kubernetes_namespace_v1.monitoring",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "after": {
+     "id": "monitoring",
+     "metadata": [
+      {
+       "annotations": null,
+       "generate_name": null,
+       "generation": 0,
+       "labels": null,
+       "name": "monitoring",
+       "resource_version": "767",
+       "uid": "74104ecc-9b2a-4382-8e64-f5907a883a2d"
+      }
+     ],
+     "timeouts": null,
+     "wait_for_default_service_account": false
+    },
+    "after_identity": {
+     "api_version": "v1",
+     "kind": "Namespace",
+     "name": "monitoring"
+    },
+    "after_sensitive": {
+     "metadata": [
+      {}
+     ]
+    },
+    "after_unknown": {},
+    "before": {
+     "id": "monitoring",
+     "metadata": [
+      {
+       "annotations": null,
+       "generate_name": null,
+       "generation": 0,
+       "labels": null,
+       "name": "monitoring",
+       "resource_version": "767",
+       "uid": "74104ecc-9b2a-4382-8e64-f5907a883a2d"
+      }
+     ],
+     "timeouts": null,
+     "wait_for_default_service_account": false
+    },
+    "before_identity": {
+     "api_version": "v1",
+     "kind": "Namespace",
+     "name": "monitoring"
+    },
+    "before_sensitive": {
+     "metadata": [
+      {}
+     ]
+    }
+   },
+   "mode": "managed",
+   "module_address": "module.monitoring",
+   "name": "monitoring",
+   "provider_name": "registry.terraform.io/hashicorp/kubernetes",
+   "type": "kubernetes_namespace_v1"
+  },
+  {
+   "address": "module.smelt.kubernetes_deployment_v1.smelt",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "after": {
+     "id": "smelt-park/smelt",
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 2,
+       "labels": {
+        "app.kubernetes.io/name": "smelt"
+       },
+       "name": "smelt",
+       "namespace": "smelt-park",
+       "resource_version": "944",
+       "uid": "2441cb69-89ff-4eca-a5bc-c3138bb05169"
+      }
+     ],
+     "spec": [
+      {
+       "min_ready_seconds": 0,
+       "paused": false,
+       "progress_deadline_seconds": 600,
+       "replicas": "1",
+       "revision_history_limit": 10,
+       "selector": [
+        {
+         "match_expressions": [],
+         "match_labels": {
+          "app.kubernetes.io/name": "smelt"
+         }
+        }
+       ],
+       "strategy": [
+        {
+         "rolling_update": [],
+         "type": "Recreate"
+        }
+       ],
+       "template": [
+        {
+         "metadata": [
+          {
+           "annotations": {},
+           "generate_name": "",
+           "generation": 0,
+           "labels": {
+            "app.kubernetes.io/name": "smelt"
+           },
+           "name": "",
+           "namespace": "",
+           "resource_version": "",
+           "uid": ""
+          }
+         ],
+         "spec": [
+          {
+           "active_deadline_seconds": 0,
+           "affinity": [],
+           "automount_service_account_token": true,
+           "container": [
+            {
+             "args": [],
+             "command": [],
+             "env": [
+              {
+               "name": "DATABASE_URL",
+               "value": "",
+               "value_from": [
+                {
+                 "config_map_key_ref": [],
+                 "field_ref": [],
+                 "resource_field_ref": [],
+                 "secret_key_ref": [
+                  {
+                   "key": "DATABASE_URL",
+                   "name": "smelt-db",
+                   "optional": false
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "name": "OTEL_EXPORTER_OTLP_ENDPOINT",
+               "value": "http://tempo.monitoring.svc.cluster.local:4318",
+               "value_from": []
+              },
+              {
+               "name": "SANDBOX_IMAGE",
+               "value": "ghcr.io/cconstantine/smelt-sandbox:8494afbafc47",
+               "value_from": []
+              },
+              {
+               "name": "SANDBOX_IMAGE_PULL_POLICY",
+               "value": "IfNotPresent",
+               "value_from": []
+              },
+              {
+               "name": "SANDBOX_NODE_SELECTOR",
+               "value": "kubernetes.io/arch=amd64",
+               "value_from": []
+              },
+              {
+               "name": "SMELT_ALLOWED_HOSTS",
+               "value": "smelt.constantlee.us",
+               "value_from": []
+              },
+              {
+               "name": "SMELT_BASE_URL",
+               "value": "https://smelt.constantlee.us",
+               "value_from": []
+              },
+              {
+               "name": "SMELT_PREVIEW_ADDR",
+               "value": "0.0.0.0:8181",
+               "value_from": []
+              },
+              {
+               "name": "SMELT_PREVIEW_URL",
+               "value": "https://{port}-{conversation}.preview.smelt.constantlee.us",
+               "value_from": []
+              }
+             ],
+             "env_from": [],
+             "image": "ghcr.io/cconstantine/smelt:8494afbafc47",
+             "image_pull_policy": "IfNotPresent",
+             "lifecycle": [],
+             "liveness_probe": [
+              {
+               "exec": [],
+               "failure_threshold": 3,
+               "grpc": [],
+               "http_get": [
+                {
+                 "host": "",
+                 "http_header": [],
+                 "path": "/api/build-id",
+                 "port": "http",
+                 "scheme": "HTTP"
+                }
+               ],
+               "initial_delay_seconds": 30,
+               "period_seconds": 30,
+               "success_threshold": 1,
+               "tcp_socket": [],
+               "timeout_seconds": 1
+              }
+             ],
+             "name": "smelt",
+             "port": [
+              {
+               "container_port": 8080,
+               "host_ip": "",
+               "host_port": 0,
+               "name": "http",
+               "protocol": "TCP"
+              },
+              {
+               "container_port": 8181,
+               "host_ip": "",
+               "host_port": 0,
+               "name": "previews",
+               "protocol": "TCP"
+              }
+             ],
+             "readiness_probe": [
+              {
+               "exec": [],
+               "failure_threshold": 3,
+               "grpc": [],
+               "http_get": [
+                {
+                 "host": "",
+                 "http_header": [],
+                 "path": "/api/build-id",
+                 "port": "http",
+                 "scheme": "HTTP"
+                }
+               ],
+               "initial_delay_seconds": 5,
+               "period_seconds": 10,
+               "success_threshold": 1,
+               "tcp_socket": [],
+               "timeout_seconds": 1
+              }
+             ],
+             "resources": [
+              {
+               "limits": {
+                "memory": "2Gi"
+               },
+               "requests": {
+                "cpu": "250m",
+                "memory": "2Gi"
+               }
+              }
+             ],
+             "restart_policy": "",
+             "security_context": [],
+             "startup_probe": [],
+             "stdin": false,
+             "stdin_once": false,
+             "termination_message_path": "/dev/termination-log",
+             "termination_message_policy": "File",
+             "tty": false,
+             "volume_device": [],
+             "volume_mount": [],
+             "working_dir": ""
+            }
+           ],
+           "dns_config": [],
+           "dns_policy": "ClusterFirst",
+           "enable_service_links": true,
+           "host_aliases": [],
+           "host_ipc": false,
+           "host_network": false,
+           "host_pid": false,
+           "hostname": "",
+           "image_pull_secrets": [],
+           "init_container": [
+            {
+             "args": [],
+             "command": [
+              "sh",
+              "-c",
+              "tries=0\nuntil pg_isready -h smelt-db.smelt-park.svc.cluster.local -U postgres; do\n  tries=$((tries + 1))\n  if [ \"$tries\" -gt 40 ]; then\n    echo \"the database never answered\" >&2\n    exit 1\n  fi\n  sleep 3\ndone\n"
+             ],
+             "env": [],
+             "env_from": [],
+             "image": "postgres:17-alpine",
+             "image_pull_policy": "IfNotPresent",
+             "lifecycle": [],
+             "liveness_probe": [],
+             "name": "database-is-ready",
+             "port": [],
+             "readiness_probe": [],
+             "resources": [
+              {
+               "limits": {
+                "memory": "64Mi"
+               },
+               "requests": {
+                "memory": "32Mi"
+               }
+              }
+             ],
+             "restart_policy": "",
+             "security_context": [],
+             "startup_probe": [],
+             "stdin": false,
+             "stdin_once": false,
+             "termination_message_path": "/dev/termination-log",
+             "termination_message_policy": "File",
+             "tty": false,
+             "volume_device": [],
+             "volume_mount": [],
+             "working_dir": ""
+            }
+           ],
+           "node_name": "",
+           "node_selector": {},
+           "os": [],
+           "priority_class_name": "",
+           "readiness_gate": [],
+           "restart_policy": "Always",
+           "runtime_class_name": "",
+           "scheduler_name": "default-scheduler",
+           "security_context": [],
+           "service_account_name": "park",
+           "share_process_namespace": false,
+           "subdomain": "",
+           "termination_grace_period_seconds": 30,
+           "toleration": [],
+           "topology_spread_constraint": [],
+           "volume": []
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "timeouts": null,
+     "wait_for_rollout": true
+    },
+    "after_identity": {
+     "api_version": "apps/v1",
+     "kind": "Deployment",
+     "name": "smelt",
+     "namespace": "smelt-park"
+    },
+    "after_sensitive": {
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "spec": [
+      {
+       "selector": [
+        {
+         "match_expressions": [],
+         "match_labels": {}
+        }
+       ],
+       "strategy": [
+        {
+         "rolling_update": []
+        }
+       ],
+       "template": [
+        {
+         "metadata": [
+          {
+           "annotations": {},
+           "labels": {}
+          }
+         ],
+         "spec": [
+          {
+           "affinity": [],
+           "container": [
+            {
+             "args": [],
+             "command": [],
+             "env": [
+              {
+               "value_from": [
+                {
+                 "config_map_key_ref": [],
+                 "field_ref": [],
+                 "resource_field_ref": [],
+                 "secret_key_ref": [
+                  {}
+                 ]
+                }
+               ]
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              }
+             ],
+             "env_from": [],
+             "lifecycle": [],
+             "liveness_probe": [
+              {
+               "exec": [],
+               "grpc": [],
+               "http_get": [
+                {
+                 "http_header": []
+                }
+               ],
+               "tcp_socket": []
+              }
+             ],
+             "port": [
+              {},
+              {}
+             ],
+             "readiness_probe": [
+              {
+               "exec": [],
+               "grpc": [],
+               "http_get": [
+                {
+                 "http_header": []
+                }
+               ],
+               "tcp_socket": []
+              }
+             ],
+             "resources": [
+              {
+               "limits": {},
+               "requests": {}
+              }
+             ],
+             "security_context": [],
+             "startup_probe": [],
+             "volume_device": [],
+             "volume_mount": []
+            }
+           ],
+           "dns_config": [],
+           "host_aliases": [],
+           "image_pull_secrets": [],
+           "init_container": [
+            {
+             "args": [],
+             "command": [
+              false,
+              false,
+              false
+             ],
+             "env": [],
+             "env_from": [],
+             "lifecycle": [],
+             "liveness_probe": [],
+             "port": [],
+             "readiness_probe": [],
+             "resources": [
+              {
+               "limits": {},
+               "requests": {}
+              }
+             ],
+             "security_context": [],
+             "startup_probe": [],
+             "volume_device": [],
+             "volume_mount": []
+            }
+           ],
+           "node_selector": {},
+           "os": [],
+           "readiness_gate": [],
+           "security_context": [],
+           "toleration": [],
+           "topology_spread_constraint": [],
+           "volume": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "after_unknown": {},
+    "before": {
+     "id": "smelt-park/smelt",
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 2,
+       "labels": {
+        "app.kubernetes.io/name": "smelt"
+       },
+       "name": "smelt",
+       "namespace": "smelt-park",
+       "resource_version": "944",
+       "uid": "2441cb69-89ff-4eca-a5bc-c3138bb05169"
+      }
+     ],
+     "spec": [
+      {
+       "min_ready_seconds": 0,
+       "paused": false,
+       "progress_deadline_seconds": 600,
+       "replicas": "1",
+       "revision_history_limit": 10,
+       "selector": [
+        {
+         "match_expressions": [],
+         "match_labels": {
+          "app.kubernetes.io/name": "smelt"
+         }
+        }
+       ],
+       "strategy": [
+        {
+         "rolling_update": [],
+         "type": "Recreate"
+        }
+       ],
+       "template": [
+        {
+         "metadata": [
+          {
+           "annotations": {},
+           "generate_name": "",
+           "generation": 0,
+           "labels": {
+            "app.kubernetes.io/name": "smelt"
+           },
+           "name": "",
+           "namespace": "",
+           "resource_version": "",
+           "uid": ""
+          }
+         ],
+         "spec": [
+          {
+           "active_deadline_seconds": 0,
+           "affinity": [],
+           "automount_service_account_token": true,
+           "container": [
+            {
+             "args": [],
+             "command": [],
+             "env": [
+              {
+               "name": "DATABASE_URL",
+               "value": "",
+               "value_from": [
+                {
+                 "config_map_key_ref": [],
+                 "field_ref": [],
+                 "resource_field_ref": [],
+                 "secret_key_ref": [
+                  {
+                   "key": "DATABASE_URL",
+                   "name": "smelt-db",
+                   "optional": false
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "name": "OTEL_EXPORTER_OTLP_ENDPOINT",
+               "value": "http://tempo.monitoring.svc.cluster.local:4318",
+               "value_from": []
+              },
+              {
+               "name": "SANDBOX_IMAGE",
+               "value": "ghcr.io/cconstantine/smelt-sandbox:8494afbafc47",
+               "value_from": []
+              },
+              {
+               "name": "SANDBOX_IMAGE_PULL_POLICY",
+               "value": "IfNotPresent",
+               "value_from": []
+              },
+              {
+               "name": "SANDBOX_NODE_SELECTOR",
+               "value": "kubernetes.io/arch=amd64",
+               "value_from": []
+              },
+              {
+               "name": "SMELT_ALLOWED_HOSTS",
+               "value": "smelt.constantlee.us",
+               "value_from": []
+              },
+              {
+               "name": "SMELT_BASE_URL",
+               "value": "https://smelt.constantlee.us",
+               "value_from": []
+              },
+              {
+               "name": "SMELT_PREVIEW_ADDR",
+               "value": "0.0.0.0:8181",
+               "value_from": []
+              },
+              {
+               "name": "SMELT_PREVIEW_URL",
+               "value": "https://{port}-{conversation}.preview.smelt.constantlee.us",
+               "value_from": []
+              }
+             ],
+             "env_from": [],
+             "image": "ghcr.io/cconstantine/smelt:8494afbafc47",
+             "image_pull_policy": "IfNotPresent",
+             "lifecycle": [],
+             "liveness_probe": [
+              {
+               "exec": [],
+               "failure_threshold": 3,
+               "grpc": [],
+               "http_get": [
+                {
+                 "host": "",
+                 "http_header": [],
+                 "path": "/api/build-id",
+                 "port": "http",
+                 "scheme": "HTTP"
+                }
+               ],
+               "initial_delay_seconds": 30,
+               "period_seconds": 30,
+               "success_threshold": 1,
+               "tcp_socket": [],
+               "timeout_seconds": 1
+              }
+             ],
+             "name": "smelt",
+             "port": [
+              {
+               "container_port": 8080,
+               "host_ip": "",
+               "host_port": 0,
+               "name": "http",
+               "protocol": "TCP"
+              },
+              {
+               "container_port": 8181,
+               "host_ip": "",
+               "host_port": 0,
+               "name": "previews",
+               "protocol": "TCP"
+              }
+             ],
+             "readiness_probe": [
+              {
+               "exec": [],
+               "failure_threshold": 3,
+               "grpc": [],
+               "http_get": [
+                {
+                 "host": "",
+                 "http_header": [],
+                 "path": "/api/build-id",
+                 "port": "http",
+                 "scheme": "HTTP"
+                }
+               ],
+               "initial_delay_seconds": 5,
+               "period_seconds": 10,
+               "success_threshold": 1,
+               "tcp_socket": [],
+               "timeout_seconds": 1
+              }
+             ],
+             "resources": [
+              {
+               "limits": {
+                "memory": "2Gi"
+               },
+               "requests": {
+                "cpu": "250m",
+                "memory": "2Gi"
+               }
+              }
+             ],
+             "restart_policy": "",
+             "security_context": [],
+             "startup_probe": [],
+             "stdin": false,
+             "stdin_once": false,
+             "termination_message_path": "/dev/termination-log",
+             "termination_message_policy": "File",
+             "tty": false,
+             "volume_device": [],
+             "volume_mount": [],
+             "working_dir": ""
+            }
+           ],
+           "dns_config": [],
+           "dns_policy": "ClusterFirst",
+           "enable_service_links": true,
+           "host_aliases": [],
+           "host_ipc": false,
+           "host_network": false,
+           "host_pid": false,
+           "hostname": "",
+           "image_pull_secrets": [],
+           "init_container": [
+            {
+             "args": [],
+             "command": [
+              "sh",
+              "-c",
+              "tries=0\nuntil pg_isready -h smelt-db.smelt-park.svc.cluster.local -U postgres; do\n  tries=$((tries + 1))\n  if [ \"$tries\" -gt 40 ]; then\n    echo \"the database never answered\" >&2\n    exit 1\n  fi\n  sleep 3\ndone\n"
+             ],
+             "env": [],
+             "env_from": [],
+             "image": "postgres:17-alpine",
+             "image_pull_policy": "IfNotPresent",
+             "lifecycle": [],
+             "liveness_probe": [],
+             "name": "database-is-ready",
+             "port": [],
+             "readiness_probe": [],
+             "resources": [
+              {
+               "limits": {
+                "memory": "64Mi"
+               },
+               "requests": {
+                "memory": "32Mi"
+               }
+              }
+             ],
+             "restart_policy": "",
+             "security_context": [],
+             "startup_probe": [],
+             "stdin": false,
+             "stdin_once": false,
+             "termination_message_path": "/dev/termination-log",
+             "termination_message_policy": "File",
+             "tty": false,
+             "volume_device": [],
+             "volume_mount": [],
+             "working_dir": ""
+            }
+           ],
+           "node_name": "",
+           "node_selector": {},
+           "os": [],
+           "priority_class_name": "",
+           "readiness_gate": [],
+           "restart_policy": "Always",
+           "runtime_class_name": "",
+           "scheduler_name": "default-scheduler",
+           "security_context": [],
+           "service_account_name": "park",
+           "share_process_namespace": false,
+           "subdomain": "",
+           "termination_grace_period_seconds": 30,
+           "toleration": [],
+           "topology_spread_constraint": [],
+           "volume": []
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "timeouts": null,
+     "wait_for_rollout": true
+    },
+    "before_identity": {
+     "api_version": "apps/v1",
+     "kind": "Deployment",
+     "name": "smelt",
+     "namespace": "smelt-park"
+    },
+    "before_sensitive": {
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "spec": [
+      {
+       "selector": [
+        {
+         "match_expressions": [],
+         "match_labels": {}
+        }
+       ],
+       "strategy": [
+        {
+         "rolling_update": []
+        }
+       ],
+       "template": [
+        {
+         "metadata": [
+          {
+           "annotations": {},
+           "labels": {}
+          }
+         ],
+         "spec": [
+          {
+           "affinity": [],
+           "container": [
+            {
+             "args": [],
+             "command": [],
+             "env": [
+              {
+               "value_from": [
+                {
+                 "config_map_key_ref": [],
+                 "field_ref": [],
+                 "resource_field_ref": [],
+                 "secret_key_ref": [
+                  {}
+                 ]
+                }
+               ]
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              }
+             ],
+             "env_from": [],
+             "lifecycle": [],
+             "liveness_probe": [
+              {
+               "exec": [],
+               "grpc": [],
+               "http_get": [
+                {
+                 "http_header": []
+                }
+               ],
+               "tcp_socket": []
+              }
+             ],
+             "port": [
+              {},
+              {}
+             ],
+             "readiness_probe": [
+              {
+               "exec": [],
+               "grpc": [],
+               "http_get": [
+                {
+                 "http_header": []
+                }
+               ],
+               "tcp_socket": []
+              }
+             ],
+             "resources": [
+              {
+               "limits": {},
+               "requests": {}
+              }
+             ],
+             "security_context": [],
+             "startup_probe": [],
+             "volume_device": [],
+             "volume_mount": []
+            }
+           ],
+           "dns_config": [],
+           "host_aliases": [],
+           "image_pull_secrets": [],
+           "init_container": [
+            {
+             "args": [],
+             "command": [
+              false,
+              false,
+              false
+             ],
+             "env": [],
+             "env_from": [],
+             "lifecycle": [],
+             "liveness_probe": [],
+             "port": [],
+             "readiness_probe": [],
+             "resources": [
+              {
+               "limits": {},
+               "requests": {}
+              }
+             ],
+             "security_context": [],
+             "startup_probe": [],
+             "volume_device": [],
+             "volume_mount": []
+            }
+           ],
+           "node_selector": {},
+           "os": [],
+           "readiness_gate": [],
+           "security_context": [],
+           "toleration": [],
+           "topology_spread_constraint": [],
+           "volume": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "mode": "managed",
+   "module_address": "module.smelt",
+   "name": "smelt",
+   "provider_name": "registry.terraform.io/hashicorp/kubernetes",
+   "type": "kubernetes_deployment_v1"
+  },
+  {
+   "address": "module.smelt.kubernetes_ingress_v1.smelt",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "after": {
+     "id": "smelt-park/smelt",
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 1,
+       "labels": {
+        "app.kubernetes.io/name": "smelt"
+       },
+       "name": "smelt",
+       "namespace": "smelt-park",
+       "resource_version": "788",
+       "uid": "c165a5d4-0424-4b3b-953d-3d32d2edb83a"
+      }
+     ],
+     "spec": [
+      {
+       "default_backend": [],
+       "ingress_class_name": "traefik",
+       "rule": [
+        {
+         "host": "smelt.constantlee.us",
+         "http": [
+          {
+           "path": [
+            {
+             "backend": [
+              {
+               "resource": [],
+               "service": [
+                {
+                 "name": "smelt",
+                 "port": [
+                  {
+                   "name": "",
+                   "number": 8080
+                  }
+                 ]
+                }
+               ]
+              }
+             ],
+             "path": "/",
+             "path_type": "Prefix"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "host": "*.preview.smelt.constantlee.us",
+         "http": [
+          {
+           "path": [
+            {
+             "backend": [
+              {
+               "resource": [],
+               "service": [
+                {
+                 "name": "smelt",
+                 "port": [
+                  {
+                   "name": "",
+                   "number": 8181
+                  }
+                 ]
+                }
+               ]
+              }
+             ],
+             "path": "/",
+             "path_type": "Prefix"
+            }
+           ]
+          }
+         ]
+        }
+       ],
+       "tls": []
+      }
+     ],
+     "status": [
+      {
+       "load_balancer": [
+        {
+         "ingress": [
+          {
+           "hostname": "",
+           "ip": "172.21.0.2"
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "timeouts": null,
+     "wait_for_load_balancer": null
+    },
+    "after_identity": {
+     "api_version": "networking.k8s.io/v1",
+     "kind": "Ingress",
+     "name": "smelt",
+     "namespace": "smelt-park"
+    },
+    "after_sensitive": {
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "spec": [
+      {
+       "default_backend": [],
+       "rule": [
+        {
+         "http": [
+          {
+           "path": [
+            {
+             "backend": [
+              {
+               "resource": [],
+               "service": [
+                {
+                 "port": [
+                  {}
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "http": [
+          {
+           "path": [
+            {
+             "backend": [
+              {
+               "resource": [],
+               "service": [
+                {
+                 "port": [
+                  {}
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ],
+       "tls": []
+      }
+     ],
+     "status": [
+      {
+       "load_balancer": [
+        {
+         "ingress": [
+          {}
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "after_unknown": {},
+    "before": {
+     "id": "smelt-park/smelt",
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 1,
+       "labels": {
+        "app.kubernetes.io/name": "smelt"
+       },
+       "name": "smelt",
+       "namespace": "smelt-park",
+       "resource_version": "788",
+       "uid": "c165a5d4-0424-4b3b-953d-3d32d2edb83a"
+      }
+     ],
+     "spec": [
+      {
+       "default_backend": [],
+       "ingress_class_name": "traefik",
+       "rule": [
+        {
+         "host": "smelt.constantlee.us",
+         "http": [
+          {
+           "path": [
+            {
+             "backend": [
+              {
+               "resource": [],
+               "service": [
+                {
+                 "name": "smelt",
+                 "port": [
+                  {
+                   "name": "",
+                   "number": 8080
+                  }
+                 ]
+                }
+               ]
+              }
+             ],
+             "path": "/",
+             "path_type": "Prefix"
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "host": "*.preview.smelt.constantlee.us",
+         "http": [
+          {
+           "path": [
+            {
+             "backend": [
+              {
+               "resource": [],
+               "service": [
+                {
+                 "name": "smelt",
+                 "port": [
+                  {
+                   "name": "",
+                   "number": 8181
+                  }
+                 ]
+                }
+               ]
+              }
+             ],
+             "path": "/",
+             "path_type": "Prefix"
+            }
+           ]
+          }
+         ]
+        }
+       ],
+       "tls": []
+      }
+     ],
+     "status": [
+      {
+       "load_balancer": [
+        {
+         "ingress": [
+          {
+           "hostname": "",
+           "ip": "172.21.0.2"
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "timeouts": null,
+     "wait_for_load_balancer": null
+    },
+    "before_identity": {
+     "api_version": "networking.k8s.io/v1",
+     "kind": "Ingress",
+     "name": "smelt",
+     "namespace": "smelt-park"
+    },
+    "before_sensitive": {
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "spec": [
+      {
+       "default_backend": [],
+       "rule": [
+        {
+         "http": [
+          {
+           "path": [
+            {
+             "backend": [
+              {
+               "resource": [],
+               "service": [
+                {
+                 "port": [
+                  {}
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        },
+        {
+         "http": [
+          {
+           "path": [
+            {
+             "backend": [
+              {
+               "resource": [],
+               "service": [
+                {
+                 "port": [
+                  {}
+                 ]
+                }
+               ]
+              }
+             ]
+            }
+           ]
+          }
+         ]
+        }
+       ],
+       "tls": []
+      }
+     ],
+     "status": [
+      {
+       "load_balancer": [
+        {
+         "ingress": [
+          {}
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "mode": "managed",
+   "module_address": "module.smelt",
+   "name": "smelt",
+   "provider_name": "registry.terraform.io/hashicorp/kubernetes",
+   "type": "kubernetes_ingress_v1"
+  },
+  {
+   "address": "module.smelt.kubernetes_limit_range_v1.sandbox_pod_max[\"smelt-park\"]",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "after": {
+     "id": "smelt-park/sandbox-pod-max",
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 0,
+       "labels": {},
+       "name": "sandbox-pod-max",
+       "namespace": "smelt-park",
+       "resource_version": "882",
+       "uid": "8aa9a7b8-a7ee-49e5-9039-306e1f672a9d"
+      }
+     ],
+     "spec": [
+      {
+       "limit": [
+        {
+         "default": {
+          "memory": "4Gi"
+         },
+         "default_request": {
+          "memory": "0"
+         },
+         "max": {
+          "memory": "4Gi"
+         },
+         "max_limit_request_ratio": {},
+         "min": {},
+         "type": "Container"
+        }
+       ]
+      }
+     ]
+    },
+    "after_sensitive": {
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "spec": [
+      {
+       "limit": [
+        {
+         "default": {},
+         "default_request": {},
+         "max": {},
+         "max_limit_request_ratio": {},
+         "min": {}
+        }
+       ]
+      }
+     ]
+    },
+    "after_unknown": {},
+    "before": {
+     "id": "smelt-park/sandbox-pod-max",
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 0,
+       "labels": {},
+       "name": "sandbox-pod-max",
+       "namespace": "smelt-park",
+       "resource_version": "882",
+       "uid": "8aa9a7b8-a7ee-49e5-9039-306e1f672a9d"
+      }
+     ],
+     "spec": [
+      {
+       "limit": [
+        {
+         "default": {
+          "memory": "4Gi"
+         },
+         "default_request": {
+          "memory": "0"
+         },
+         "max": {
+          "memory": "4Gi"
+         },
+         "max_limit_request_ratio": {},
+         "min": {},
+         "type": "Container"
+        }
+       ]
+      }
+     ]
+    },
+    "before_sensitive": {
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "spec": [
+      {
+       "limit": [
+        {
+         "default": {},
+         "default_request": {},
+         "max": {},
+         "max_limit_request_ratio": {},
+         "min": {}
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "index": "smelt-park",
+   "mode": "managed",
+   "module_address": "module.smelt",
+   "name": "sandbox_pod_max",
+   "provider_name": "registry.terraform.io/hashicorp/kubernetes",
+   "type": "kubernetes_limit_range_v1"
+  },
+  {
+   "address": "module.smelt.kubernetes_namespace_v1.park",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "after": {
+     "id": "smelt-park",
+     "metadata": [
+      {
+       "annotations": null,
+       "generate_name": null,
+       "generation": 0,
+       "labels": {
+        "app.kubernetes.io/name": "smelt"
+       },
+       "name": "smelt-park",
+       "resource_version": "768",
+       "uid": "b0f8340a-7657-403a-80df-7c4fc324ad2d"
+      }
+     ],
+     "timeouts": null,
+     "wait_for_default_service_account": false
+    },
+    "after_identity": {
+     "api_version": "v1",
+     "kind": "Namespace",
+     "name": "smelt-park"
+    },
+    "after_sensitive": {
+     "metadata": [
+      {
+       "labels": {}
+      }
+     ]
+    },
+    "after_unknown": {},
+    "before": {
+     "id": "smelt-park",
+     "metadata": [
+      {
+       "annotations": null,
+       "generate_name": null,
+       "generation": 0,
+       "labels": {
+        "app.kubernetes.io/name": "smelt"
+       },
+       "name": "smelt-park",
+       "resource_version": "768",
+       "uid": "b0f8340a-7657-403a-80df-7c4fc324ad2d"
+      }
+     ],
+     "timeouts": null,
+     "wait_for_default_service_account": false
+    },
+    "before_identity": {
+     "api_version": "v1",
+     "kind": "Namespace",
+     "name": "smelt-park"
+    },
+    "before_sensitive": {
+     "metadata": [
+      {
+       "labels": {}
+      }
+     ]
+    }
+   },
+   "mode": "managed",
+   "module_address": "module.smelt",
+   "name": "park",
+   "provider_name": "registry.terraform.io/hashicorp/kubernetes",
+   "type": "kubernetes_namespace_v1"
+  },
+  {
+   "address": "module.smelt.kubernetes_role_binding_v1.park[\"smelt-park\"]",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "after": {
+     "id": "smelt-park/park",
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 0,
+       "labels": {},
+       "name": "park",
+       "namespace": "smelt-park",
+       "resource_version": "785",
+       "uid": "0efc1a7f-ca15-4ed1-8ca9-f93ee6e44be3"
+      }
+     ],
+     "role_ref": [
+      {
+       "api_group": "rbac.authorization.k8s.io",
+       "kind": "Role",
+       "name": "park"
+      }
+     ],
+     "subject": [
+      {
+       "api_group": "",
+       "kind": "ServiceAccount",
+       "name": "park",
+       "namespace": "smelt-park"
+      }
+     ]
+    },
+    "after_identity": {
+     "api_version": "rbac.authorization.k8s.io/v1",
+     "kind": "RoleBinding",
+     "name": "park",
+     "namespace": "smelt-park"
+    },
+    "after_sensitive": {
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "role_ref": [
+      {}
+     ],
+     "subject": [
+      {}
+     ]
+    },
+    "after_unknown": {},
+    "before": {
+     "id": "smelt-park/park",
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 0,
+       "labels": {},
+       "name": "park",
+       "namespace": "smelt-park",
+       "resource_version": "785",
+       "uid": "0efc1a7f-ca15-4ed1-8ca9-f93ee6e44be3"
+      }
+     ],
+     "role_ref": [
+      {
+       "api_group": "rbac.authorization.k8s.io",
+       "kind": "Role",
+       "name": "park"
+      }
+     ],
+     "subject": [
+      {
+       "api_group": "",
+       "kind": "ServiceAccount",
+       "name": "park",
+       "namespace": "smelt-park"
+      }
+     ]
+    },
+    "before_identity": {
+     "api_version": "rbac.authorization.k8s.io/v1",
+     "kind": "RoleBinding",
+     "name": "park",
+     "namespace": "smelt-park"
+    },
+    "before_sensitive": {
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "role_ref": [
+      {}
+     ],
+     "subject": [
+      {}
+     ]
+    }
+   },
+   "index": "smelt-park",
+   "mode": "managed",
+   "module_address": "module.smelt",
+   "name": "park",
+   "provider_name": "registry.terraform.io/hashicorp/kubernetes",
+   "type": "kubernetes_role_binding_v1"
+  },
+  {
+   "address": "module.smelt.kubernetes_role_v1.park[\"smelt-park\"]",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "after": {
+     "id": "smelt-park/park",
+     "metadata": [
+      {
+       "annotations": null,
+       "generate_name": null,
+       "generation": 0,
+       "labels": null,
+       "name": "park",
+       "namespace": "smelt-park",
+       "resource_version": "773",
+       "uid": "00c763bb-077f-49be-8a12-98311b680f3f"
+      }
+     ],
+     "rule": [
+      {
+       "api_groups": [
+        ""
+       ],
+       "resource_names": [],
+       "resources": [
+        "pods"
+       ],
+       "verbs": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "watch"
+       ]
+      },
+      {
+       "api_groups": [
+        ""
+       ],
+       "resource_names": [],
+       "resources": [
+        "pods/exec"
+       ],
+       "verbs": [
+        "create",
+        "get"
+       ]
+      },
+      {
+       "api_groups": [
+        ""
+       ],
+       "resource_names": [],
+       "resources": [
+        "pods/portforward"
+       ],
+       "verbs": [
+        "create",
+        "get"
+       ]
+      },
+      {
+       "api_groups": [
+        ""
+       ],
+       "resource_names": [],
+       "resources": [
+        "pods/log"
+       ],
+       "verbs": [
+        "get"
+       ]
+      },
+      {
+       "api_groups": [
+        ""
+       ],
+       "resource_names": [],
+       "resources": [
+        "persistentvolumeclaims"
+       ],
+       "verbs": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "watch"
+       ]
+      },
+      {
+       "api_groups": [
+        ""
+       ],
+       "resource_names": [],
+       "resources": [
+        "configmaps",
+        "secrets",
+        "services"
+       ],
+       "verbs": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch"
+       ]
+      },
+      {
+       "api_groups": [
+        "networking.k8s.io"
+       ],
+       "resource_names": [],
+       "resources": [
+        "ingresses"
+       ],
+       "verbs": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch"
+       ]
+      },
+      {
+       "api_groups": [
+        ""
+       ],
+       "resource_names": [],
+       "resources": [
+        "endpoints",
+        "events",
+        "limitranges",
+        "resourcequotas"
+       ],
+       "verbs": [
+        "get",
+        "list"
+       ]
+      },
+      {
+       "api_groups": [
+        "metrics.k8s.io"
+       ],
+       "resource_names": [],
+       "resources": [
+        "pods"
+       ],
+       "verbs": [
+        "get",
+        "list"
+       ]
+      },
+      {
+       "api_groups": [
+        "discovery.k8s.io"
+       ],
+       "resource_names": [],
+       "resources": [
+        "endpointslices"
+       ],
+       "verbs": [
+        "get",
+        "list"
+       ]
+      }
+     ]
+    },
+    "after_identity": {
+     "api_version": "rbac.authorization.k8s.io/v1",
+     "kind": "Role",
+     "name": "park",
+     "namespace": "smelt-park"
+    },
+    "after_sensitive": {
+     "metadata": [
+      {}
+     ],
+     "rule": [
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false,
+        false,
+        false
+       ],
+       "verbs": [
+        false,
+        false,
+        false,
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false,
+        false,
+        false,
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false,
+        false,
+        false,
+        false
+       ],
+       "verbs": [
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false,
+        false
+       ]
+      }
+     ]
+    },
+    "after_unknown": {},
+    "before": {
+     "id": "smelt-park/park",
+     "metadata": [
+      {
+       "annotations": null,
+       "generate_name": null,
+       "generation": 0,
+       "labels": null,
+       "name": "park",
+       "namespace": "smelt-park",
+       "resource_version": "773",
+       "uid": "00c763bb-077f-49be-8a12-98311b680f3f"
+      }
+     ],
+     "rule": [
+      {
+       "api_groups": [
+        ""
+       ],
+       "resource_names": [],
+       "resources": [
+        "pods"
+       ],
+       "verbs": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "watch"
+       ]
+      },
+      {
+       "api_groups": [
+        ""
+       ],
+       "resource_names": [],
+       "resources": [
+        "pods/exec"
+       ],
+       "verbs": [
+        "create",
+        "get"
+       ]
+      },
+      {
+       "api_groups": [
+        ""
+       ],
+       "resource_names": [],
+       "resources": [
+        "pods/portforward"
+       ],
+       "verbs": [
+        "create",
+        "get"
+       ]
+      },
+      {
+       "api_groups": [
+        ""
+       ],
+       "resource_names": [],
+       "resources": [
+        "pods/log"
+       ],
+       "verbs": [
+        "get"
+       ]
+      },
+      {
+       "api_groups": [
+        ""
+       ],
+       "resource_names": [],
+       "resources": [
+        "persistentvolumeclaims"
+       ],
+       "verbs": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch",
+        "watch"
+       ]
+      },
+      {
+       "api_groups": [
+        ""
+       ],
+       "resource_names": [],
+       "resources": [
+        "configmaps",
+        "secrets",
+        "services"
+       ],
+       "verbs": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch"
+       ]
+      },
+      {
+       "api_groups": [
+        "networking.k8s.io"
+       ],
+       "resource_names": [],
+       "resources": [
+        "ingresses"
+       ],
+       "verbs": [
+        "create",
+        "delete",
+        "get",
+        "list",
+        "patch"
+       ]
+      },
+      {
+       "api_groups": [
+        ""
+       ],
+       "resource_names": [],
+       "resources": [
+        "endpoints",
+        "events",
+        "limitranges",
+        "resourcequotas"
+       ],
+       "verbs": [
+        "get",
+        "list"
+       ]
+      },
+      {
+       "api_groups": [
+        "metrics.k8s.io"
+       ],
+       "resource_names": [],
+       "resources": [
+        "pods"
+       ],
+       "verbs": [
+        "get",
+        "list"
+       ]
+      },
+      {
+       "api_groups": [
+        "discovery.k8s.io"
+       ],
+       "resource_names": [],
+       "resources": [
+        "endpointslices"
+       ],
+       "verbs": [
+        "get",
+        "list"
+       ]
+      }
+     ]
+    },
+    "before_identity": {
+     "api_version": "rbac.authorization.k8s.io/v1",
+     "kind": "Role",
+     "name": "park",
+     "namespace": "smelt-park"
+    },
+    "before_sensitive": {
+     "metadata": [
+      {}
+     ],
+     "rule": [
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false,
+        false,
+        false,
+        false,
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false,
+        false,
+        false
+       ],
+       "verbs": [
+        false,
+        false,
+        false,
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false,
+        false,
+        false,
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false,
+        false,
+        false,
+        false
+       ],
+       "verbs": [
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false,
+        false
+       ]
+      },
+      {
+       "api_groups": [
+        false
+       ],
+       "resource_names": [],
+       "resources": [
+        false
+       ],
+       "verbs": [
+        false,
+        false
+       ]
+      }
+     ]
+    }
+   },
+   "index": "smelt-park",
+   "mode": "managed",
+   "module_address": "module.smelt",
+   "name": "park",
+   "provider_name": "registry.terraform.io/hashicorp/kubernetes",
+   "type": "kubernetes_role_v1"
+  },
+  {
+   "address": "module.smelt.kubernetes_secret_v1.database",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "after": {
+     "binary_data": null,
+     "binary_data_wo": null,
+     "binary_data_wo_revision": null,
+     "data": "SENSITIVE-MARKER-1",
+     "data_wo": null,
+     "data_wo_revision": null,
+     "id": "smelt-park/smelt-db",
+     "immutable": false,
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 0,
+       "labels": {
+        "app.kubernetes.io/name": "smelt"
+       },
+       "name": "smelt-db",
+       "namespace": "smelt-park",
+       "resource_version": "787",
+       "uid": "e23b320f-779b-4bad-b687-cd6c14cabd4f"
+      }
+     ],
+     "timeouts": null,
+     "type": "Opaque",
+     "wait_for_service_account_token": true
+    },
+    "after_identity": {
+     "api_version": "v1",
+     "kind": "Secret",
+     "name": "smelt-db",
+     "namespace": "smelt-park"
+    },
+    "after_sensitive": {
+     "binary_data": true,
+     "data": true,
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ]
+    },
+    "after_unknown": {},
+    "before": {
+     "binary_data": null,
+     "binary_data_wo": null,
+     "binary_data_wo_revision": null,
+     "data": "SENSITIVE-MARKER-1",
+     "data_wo": null,
+     "data_wo_revision": null,
+     "id": "smelt-park/smelt-db",
+     "immutable": false,
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 0,
+       "labels": {
+        "app.kubernetes.io/name": "smelt"
+       },
+       "name": "smelt-db",
+       "namespace": "smelt-park",
+       "resource_version": "787",
+       "uid": "e23b320f-779b-4bad-b687-cd6c14cabd4f"
+      }
+     ],
+     "timeouts": null,
+     "type": "Opaque",
+     "wait_for_service_account_token": true
+    },
+    "before_identity": {
+     "api_version": "v1",
+     "kind": "Secret",
+     "name": "smelt-db",
+     "namespace": "smelt-park"
+    },
+    "before_sensitive": {
+     "binary_data": true,
+     "data": true,
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ]
+    }
+   },
+   "mode": "managed",
+   "module_address": "module.smelt",
+   "name": "database",
+   "provider_name": "registry.terraform.io/hashicorp/kubernetes",
+   "type": "kubernetes_secret_v1"
+  },
+  {
+   "address": "module.smelt.kubernetes_service_account_v1.park",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "after": {
+     "automount_service_account_token": true,
+     "default_secret_name": "",
+     "id": "smelt-park/park",
+     "image_pull_secret": [],
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 0,
+       "labels": {},
+       "name": "park",
+       "namespace": "smelt-park",
+       "resource_version": "775",
+       "uid": "557e7969-2b69-4826-bc9a-173739698ae6"
+      }
+     ],
+     "secret": [],
+     "timeouts": null
+    },
+    "after_identity": {
+     "api_version": "v1",
+     "kind": "ServiceAccount",
+     "name": "park",
+     "namespace": "smelt-park"
+    },
+    "after_sensitive": {
+     "image_pull_secret": [],
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "secret": []
+    },
+    "after_unknown": {},
+    "before": {
+     "automount_service_account_token": true,
+     "default_secret_name": "",
+     "id": "smelt-park/park",
+     "image_pull_secret": [],
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 0,
+       "labels": {},
+       "name": "park",
+       "namespace": "smelt-park",
+       "resource_version": "775",
+       "uid": "557e7969-2b69-4826-bc9a-173739698ae6"
+      }
+     ],
+     "secret": [],
+     "timeouts": null
+    },
+    "before_identity": {
+     "api_version": "v1",
+     "kind": "ServiceAccount",
+     "name": "park",
+     "namespace": "smelt-park"
+    },
+    "before_sensitive": {
+     "image_pull_secret": [],
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "secret": []
+    }
+   },
+   "mode": "managed",
+   "module_address": "module.smelt",
+   "name": "park",
+   "provider_name": "registry.terraform.io/hashicorp/kubernetes",
+   "type": "kubernetes_service_account_v1"
+  },
+  {
+   "address": "module.smelt.kubernetes_service_v1.database[0]",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "after": {
+     "id": "smelt-park/smelt-db",
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 0,
+       "labels": {
+        "app.kubernetes.io/name": "smelt"
+       },
+       "name": "smelt-db",
+       "namespace": "smelt-park",
+       "resource_version": "777",
+       "uid": "51e227dd-eeb4-46ba-960b-dc9b1af85fb4"
+      }
+     ],
+     "spec": [
+      {
+       "allocate_load_balancer_node_ports": true,
+       "cluster_ip": "10.43.17.235",
+       "cluster_ips": [
+        "10.43.17.235"
+       ],
+       "external_ips": [],
+       "external_name": "",
+       "external_traffic_policy": "",
+       "health_check_node_port": 0,
+       "internal_traffic_policy": "Cluster",
+       "ip_families": [
+        "IPv4"
+       ],
+       "ip_family_policy": "SingleStack",
+       "load_balancer_class": "",
+       "load_balancer_ip": "",
+       "load_balancer_source_ranges": [],
+       "port": [
+        {
+         "app_protocol": "",
+         "name": "postgres",
+         "node_port": 0,
+         "port": 5432,
+         "protocol": "TCP",
+         "target_port": "5432"
+        }
+       ],
+       "publish_not_ready_addresses": false,
+       "selector": {
+        "app.kubernetes.io/component": "database",
+        "app.kubernetes.io/name": "smelt"
+       },
+       "session_affinity": "None",
+       "session_affinity_config": [],
+       "type": "ClusterIP"
+      }
+     ],
+     "status": [
+      {
+       "load_balancer": [
+        {
+         "ingress": []
+        }
+       ]
+      }
+     ],
+     "timeouts": null,
+     "wait_for_load_balancer": true
+    },
+    "after_identity": {
+     "api_version": "v1",
+     "kind": "Service",
+     "name": "smelt-db",
+     "namespace": "smelt-park"
+    },
+    "after_sensitive": {
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "spec": [
+      {
+       "cluster_ips": [
+        false
+       ],
+       "external_ips": [],
+       "ip_families": [
+        false
+       ],
+       "load_balancer_source_ranges": [],
+       "port": [
+        {}
+       ],
+       "selector": {},
+       "session_affinity_config": []
+      }
+     ],
+     "status": [
+      {
+       "load_balancer": [
+        {
+         "ingress": []
+        }
+       ]
+      }
+     ]
+    },
+    "after_unknown": {},
+    "before": {
+     "id": "smelt-park/smelt-db",
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 0,
+       "labels": {
+        "app.kubernetes.io/name": "smelt"
+       },
+       "name": "smelt-db",
+       "namespace": "smelt-park",
+       "resource_version": "777",
+       "uid": "51e227dd-eeb4-46ba-960b-dc9b1af85fb4"
+      }
+     ],
+     "spec": [
+      {
+       "allocate_load_balancer_node_ports": true,
+       "cluster_ip": "10.43.17.235",
+       "cluster_ips": [
+        "10.43.17.235"
+       ],
+       "external_ips": [],
+       "external_name": "",
+       "external_traffic_policy": "",
+       "health_check_node_port": 0,
+       "internal_traffic_policy": "Cluster",
+       "ip_families": [
+        "IPv4"
+       ],
+       "ip_family_policy": "SingleStack",
+       "load_balancer_class": "",
+       "load_balancer_ip": "",
+       "load_balancer_source_ranges": [],
+       "port": [
+        {
+         "app_protocol": "",
+         "name": "postgres",
+         "node_port": 0,
+         "port": 5432,
+         "protocol": "TCP",
+         "target_port": "5432"
+        }
+       ],
+       "publish_not_ready_addresses": false,
+       "selector": {
+        "app.kubernetes.io/component": "database",
+        "app.kubernetes.io/name": "smelt"
+       },
+       "session_affinity": "None",
+       "session_affinity_config": [],
+       "type": "ClusterIP"
+      }
+     ],
+     "status": [
+      {
+       "load_balancer": [
+        {
+         "ingress": []
+        }
+       ]
+      }
+     ],
+     "timeouts": null,
+     "wait_for_load_balancer": true
+    },
+    "before_identity": {
+     "api_version": "v1",
+     "kind": "Service",
+     "name": "smelt-db",
+     "namespace": "smelt-park"
+    },
+    "before_sensitive": {
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "spec": [
+      {
+       "cluster_ips": [
+        false
+       ],
+       "external_ips": [],
+       "ip_families": [
+        false
+       ],
+       "load_balancer_source_ranges": [],
+       "port": [
+        {}
+       ],
+       "selector": {},
+       "session_affinity_config": []
+      }
+     ],
+     "status": [
+      {
+       "load_balancer": [
+        {
+         "ingress": []
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "index": 0,
+   "mode": "managed",
+   "module_address": "module.smelt",
+   "name": "database",
+   "provider_name": "registry.terraform.io/hashicorp/kubernetes",
+   "type": "kubernetes_service_v1"
+  },
+  {
+   "address": "module.smelt.kubernetes_service_v1.smelt",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "after": {
+     "id": "smelt-park/smelt",
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 0,
+       "labels": {
+        "app.kubernetes.io/name": "smelt"
+       },
+       "name": "smelt",
+       "namespace": "smelt-park",
+       "resource_version": "779",
+       "uid": "bfe7dfdf-0250-4d1d-b731-e57485ac194e"
+      }
+     ],
+     "spec": [
+      {
+       "allocate_load_balancer_node_ports": true,
+       "cluster_ip": "10.43.73.231",
+       "cluster_ips": [
+        "10.43.73.231"
+       ],
+       "external_ips": [],
+       "external_name": "",
+       "external_traffic_policy": "",
+       "health_check_node_port": 0,
+       "internal_traffic_policy": "Cluster",
+       "ip_families": [
+        "IPv4"
+       ],
+       "ip_family_policy": "SingleStack",
+       "load_balancer_class": "",
+       "load_balancer_ip": "",
+       "load_balancer_source_ranges": [],
+       "port": [
+        {
+         "app_protocol": "",
+         "name": "http",
+         "node_port": 0,
+         "port": 8080,
+         "protocol": "TCP",
+         "target_port": "http"
+        },
+        {
+         "app_protocol": "",
+         "name": "previews",
+         "node_port": 0,
+         "port": 8181,
+         "protocol": "TCP",
+         "target_port": "previews"
+        }
+       ],
+       "publish_not_ready_addresses": false,
+       "selector": {
+        "app.kubernetes.io/name": "smelt"
+       },
+       "session_affinity": "None",
+       "session_affinity_config": [],
+       "type": "ClusterIP"
+      }
+     ],
+     "status": [
+      {
+       "load_balancer": [
+        {
+         "ingress": []
+        }
+       ]
+      }
+     ],
+     "timeouts": null,
+     "wait_for_load_balancer": true
+    },
+    "after_identity": {
+     "api_version": "v1",
+     "kind": "Service",
+     "name": "smelt",
+     "namespace": "smelt-park"
+    },
+    "after_sensitive": {
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "spec": [
+      {
+       "cluster_ips": [
+        false
+       ],
+       "external_ips": [],
+       "ip_families": [
+        false
+       ],
+       "load_balancer_source_ranges": [],
+       "port": [
+        {},
+        {}
+       ],
+       "selector": {},
+       "session_affinity_config": []
+      }
+     ],
+     "status": [
+      {
+       "load_balancer": [
+        {
+         "ingress": []
+        }
+       ]
+      }
+     ]
+    },
+    "after_unknown": {},
+    "before": {
+     "id": "smelt-park/smelt",
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 0,
+       "labels": {
+        "app.kubernetes.io/name": "smelt"
+       },
+       "name": "smelt",
+       "namespace": "smelt-park",
+       "resource_version": "779",
+       "uid": "bfe7dfdf-0250-4d1d-b731-e57485ac194e"
+      }
+     ],
+     "spec": [
+      {
+       "allocate_load_balancer_node_ports": true,
+       "cluster_ip": "10.43.73.231",
+       "cluster_ips": [
+        "10.43.73.231"
+       ],
+       "external_ips": [],
+       "external_name": "",
+       "external_traffic_policy": "",
+       "health_check_node_port": 0,
+       "internal_traffic_policy": "Cluster",
+       "ip_families": [
+        "IPv4"
+       ],
+       "ip_family_policy": "SingleStack",
+       "load_balancer_class": "",
+       "load_balancer_ip": "",
+       "load_balancer_source_ranges": [],
+       "port": [
+        {
+         "app_protocol": "",
+         "name": "http",
+         "node_port": 0,
+         "port": 8080,
+         "protocol": "TCP",
+         "target_port": "http"
+        },
+        {
+         "app_protocol": "",
+         "name": "previews",
+         "node_port": 0,
+         "port": 8181,
+         "protocol": "TCP",
+         "target_port": "previews"
+        }
+       ],
+       "publish_not_ready_addresses": false,
+       "selector": {
+        "app.kubernetes.io/name": "smelt"
+       },
+       "session_affinity": "None",
+       "session_affinity_config": [],
+       "type": "ClusterIP"
+      }
+     ],
+     "status": [
+      {
+       "load_balancer": [
+        {
+         "ingress": []
+        }
+       ]
+      }
+     ],
+     "timeouts": null,
+     "wait_for_load_balancer": true
+    },
+    "before_identity": {
+     "api_version": "v1",
+     "kind": "Service",
+     "name": "smelt",
+     "namespace": "smelt-park"
+    },
+    "before_sensitive": {
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "spec": [
+      {
+       "cluster_ips": [
+        false
+       ],
+       "external_ips": [],
+       "ip_families": [
+        false
+       ],
+       "load_balancer_source_ranges": [],
+       "port": [
+        {},
+        {}
+       ],
+       "selector": {},
+       "session_affinity_config": []
+      }
+     ],
+     "status": [
+      {
+       "load_balancer": [
+        {
+         "ingress": []
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "mode": "managed",
+   "module_address": "module.smelt",
+   "name": "smelt",
+   "provider_name": "registry.terraform.io/hashicorp/kubernetes",
+   "type": "kubernetes_service_v1"
+  },
+  {
+   "address": "module.smelt.kubernetes_stateful_set_v1.database[0]",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "after": {
+     "id": "smelt-park/smelt-db",
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 1,
+       "labels": {
+        "app.kubernetes.io/component": "database",
+        "app.kubernetes.io/name": "smelt"
+       },
+       "name": "smelt-db",
+       "namespace": "smelt-park",
+       "resource_version": "858",
+       "uid": "d83ae632-170b-4254-ac27-ff493abc75f9"
+      }
+     ],
+     "spec": [
+      {
+       "min_ready_seconds": 0,
+       "persistent_volume_claim_retention_policy": [
+        {
+         "when_deleted": "Retain",
+         "when_scaled": "Retain"
+        }
+       ],
+       "pod_management_policy": "OrderedReady",
+       "replicas": "1",
+       "revision_history_limit": 0,
+       "selector": [
+        {
+         "match_expressions": [],
+         "match_labels": {
+          "app.kubernetes.io/component": "database",
+          "app.kubernetes.io/name": "smelt"
+         }
+        }
+       ],
+       "service_name": "smelt-db",
+       "template": [
+        {
+         "metadata": [
+          {
+           "annotations": {},
+           "generate_name": "",
+           "generation": 0,
+           "labels": {
+            "app.kubernetes.io/component": "database",
+            "app.kubernetes.io/name": "smelt"
+           },
+           "name": "",
+           "namespace": "",
+           "resource_version": "",
+           "uid": ""
+          }
+         ],
+         "spec": [
+          {
+           "active_deadline_seconds": 0,
+           "affinity": [],
+           "automount_service_account_token": true,
+           "container": [
+            {
+             "args": [],
+             "command": [],
+             "env": [
+              {
+               "name": "POSTGRES_PASSWORD",
+               "value": "",
+               "value_from": [
+                {
+                 "config_map_key_ref": [],
+                 "field_ref": [],
+                 "resource_field_ref": [],
+                 "secret_key_ref": [
+                  {
+                   "key": "POSTGRES_PASSWORD",
+                   "name": "smelt-db",
+                   "optional": false
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "name": "POSTGRES_USER",
+               "value": "postgres",
+               "value_from": []
+              },
+              {
+               "name": "POSTGRES_DB",
+               "value": "smelt",
+               "value_from": []
+              },
+              {
+               "name": "PGDATA",
+               "value": "/var/lib/postgresql/data/pgdata",
+               "value_from": []
+              }
+             ],
+             "env_from": [],
+             "image": "postgres:17-alpine",
+             "image_pull_policy": "IfNotPresent",
+             "lifecycle": [],
+             "liveness_probe": [
+              {
+               "exec": [
+                {
+                 "command": [
+                  "pg_isready",
+                  "-U",
+                  "postgres"
+                 ]
+                }
+               ],
+               "failure_threshold": 3,
+               "grpc": [],
+               "http_get": [],
+               "initial_delay_seconds": 30,
+               "period_seconds": 30,
+               "success_threshold": 1,
+               "tcp_socket": [],
+               "timeout_seconds": 1
+              }
+             ],
+             "name": "postgres",
+             "port": [
+              {
+               "container_port": 5432,
+               "host_ip": "",
+               "host_port": 0,
+               "name": "postgres",
+               "protocol": "TCP"
+              }
+             ],
+             "readiness_probe": [
+              {
+               "exec": [
+                {
+                 "command": [
+                  "pg_isready",
+                  "-U",
+                  "postgres"
+                 ]
+                }
+               ],
+               "failure_threshold": 3,
+               "grpc": [],
+               "http_get": [],
+               "initial_delay_seconds": 5,
+               "period_seconds": 5,
+               "success_threshold": 1,
+               "tcp_socket": [],
+               "timeout_seconds": 1
+              }
+             ],
+             "resources": [
+              {
+               "limits": {
+                "memory": "1Gi"
+               },
+               "requests": {
+                "cpu": "100m",
+                "memory": "256Mi"
+               }
+              }
+             ],
+             "restart_policy": "",
+             "security_context": [],
+             "startup_probe": [],
+             "stdin": false,
+             "stdin_once": false,
+             "termination_message_path": "/dev/termination-log",
+             "termination_message_policy": "File",
+             "tty": false,
+             "volume_device": [],
+             "volume_mount": [
+              {
+               "mount_path": "/var/lib/postgresql/data",
+               "mount_propagation": "None",
+               "name": "data",
+               "read_only": false,
+               "sub_path": "",
+               "sub_path_expr": ""
+              }
+             ],
+             "working_dir": ""
+            }
+           ],
+           "dns_config": [],
+           "dns_policy": "ClusterFirst",
+           "enable_service_links": true,
+           "host_aliases": [],
+           "host_ipc": false,
+           "host_network": false,
+           "host_pid": false,
+           "hostname": "",
+           "image_pull_secrets": [],
+           "init_container": [],
+           "node_name": "",
+           "node_selector": {},
+           "os": [],
+           "priority_class_name": "",
+           "readiness_gate": [],
+           "restart_policy": "Always",
+           "runtime_class_name": "",
+           "scheduler_name": "default-scheduler",
+           "security_context": [
+            {
+             "fs_group": "5432",
+             "fs_group_change_policy": "",
+             "run_as_group": "",
+             "run_as_non_root": false,
+             "run_as_user": "",
+             "se_linux_options": [],
+             "seccomp_profile": [],
+             "supplemental_groups": [],
+             "sysctl": [],
+             "windows_options": []
+            }
+           ],
+           "service_account_name": "",
+           "share_process_namespace": false,
+           "subdomain": "",
+           "termination_grace_period_seconds": 30,
+           "toleration": [],
+           "topology_spread_constraint": [],
+           "volume": []
+          }
+         ]
+        }
+       ],
+       "update_strategy": [],
+       "volume_claim_template": [
+        {
+         "metadata": [
+          {
+           "annotations": {},
+           "generate_name": "",
+           "generation": 0,
+           "labels": {},
+           "name": "data",
+           "namespace": "default",
+           "resource_version": "",
+           "uid": ""
+          }
+         ],
+         "spec": [
+          {
+           "access_modes": [
+            "ReadWriteOnce"
+           ],
+           "resources": [
+            {
+             "limits": {},
+             "requests": {
+              "storage": "10Gi"
+             }
+            }
+           ],
+           "selector": [],
+           "storage_class_name": "",
+           "volume_mode": "Filesystem",
+           "volume_name": ""
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "timeouts": null,
+     "wait_for_rollout": true
+    },
+    "after_identity": {
+     "api_version": "apps/v1",
+     "kind": "StatefulSet",
+     "name": "smelt-db",
+     "namespace": "smelt-park"
+    },
+    "after_sensitive": {
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "spec": [
+      {
+       "persistent_volume_claim_retention_policy": [
+        {}
+       ],
+       "selector": [
+        {
+         "match_expressions": [],
+         "match_labels": {}
+        }
+       ],
+       "template": [
+        {
+         "metadata": [
+          {
+           "annotations": {},
+           "labels": {}
+          }
+         ],
+         "spec": [
+          {
+           "affinity": [],
+           "container": [
+            {
+             "args": [],
+             "command": [],
+             "env": [
+              {
+               "value_from": [
+                {
+                 "config_map_key_ref": [],
+                 "field_ref": [],
+                 "resource_field_ref": [],
+                 "secret_key_ref": [
+                  {}
+                 ]
+                }
+               ]
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              }
+             ],
+             "env_from": [],
+             "lifecycle": [],
+             "liveness_probe": [
+              {
+               "exec": [
+                {
+                 "command": [
+                  false,
+                  false,
+                  false
+                 ]
+                }
+               ],
+               "grpc": [],
+               "http_get": [],
+               "tcp_socket": []
+              }
+             ],
+             "port": [
+              {}
+             ],
+             "readiness_probe": [
+              {
+               "exec": [
+                {
+                 "command": [
+                  false,
+                  false,
+                  false
+                 ]
+                }
+               ],
+               "grpc": [],
+               "http_get": [],
+               "tcp_socket": []
+              }
+             ],
+             "resources": [
+              {
+               "limits": {},
+               "requests": {}
+              }
+             ],
+             "security_context": [],
+             "startup_probe": [],
+             "volume_device": [],
+             "volume_mount": [
+              {}
+             ]
+            }
+           ],
+           "dns_config": [],
+           "host_aliases": [],
+           "image_pull_secrets": [],
+           "init_container": [],
+           "node_selector": {},
+           "os": [],
+           "readiness_gate": [],
+           "security_context": [
+            {
+             "se_linux_options": [],
+             "seccomp_profile": [],
+             "supplemental_groups": [],
+             "sysctl": [],
+             "windows_options": []
+            }
+           ],
+           "toleration": [],
+           "topology_spread_constraint": [],
+           "volume": []
+          }
+         ]
+        }
+       ],
+       "update_strategy": [],
+       "volume_claim_template": [
+        {
+         "metadata": [
+          {
+           "annotations": {},
+           "labels": {}
+          }
+         ],
+         "spec": [
+          {
+           "access_modes": [
+            false
+           ],
+           "resources": [
+            {
+             "limits": {},
+             "requests": {}
+            }
+           ],
+           "selector": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    },
+    "after_unknown": {},
+    "before": {
+     "id": "smelt-park/smelt-db",
+     "metadata": [
+      {
+       "annotations": {},
+       "generate_name": "",
+       "generation": 1,
+       "labels": {
+        "app.kubernetes.io/component": "database",
+        "app.kubernetes.io/name": "smelt"
+       },
+       "name": "smelt-db",
+       "namespace": "smelt-park",
+       "resource_version": "858",
+       "uid": "d83ae632-170b-4254-ac27-ff493abc75f9"
+      }
+     ],
+     "spec": [
+      {
+       "min_ready_seconds": 0,
+       "persistent_volume_claim_retention_policy": [
+        {
+         "when_deleted": "Retain",
+         "when_scaled": "Retain"
+        }
+       ],
+       "pod_management_policy": "OrderedReady",
+       "replicas": "1",
+       "revision_history_limit": 0,
+       "selector": [
+        {
+         "match_expressions": [],
+         "match_labels": {
+          "app.kubernetes.io/component": "database",
+          "app.kubernetes.io/name": "smelt"
+         }
+        }
+       ],
+       "service_name": "smelt-db",
+       "template": [
+        {
+         "metadata": [
+          {
+           "annotations": {},
+           "generate_name": "",
+           "generation": 0,
+           "labels": {
+            "app.kubernetes.io/component": "database",
+            "app.kubernetes.io/name": "smelt"
+           },
+           "name": "",
+           "namespace": "",
+           "resource_version": "",
+           "uid": ""
+          }
+         ],
+         "spec": [
+          {
+           "active_deadline_seconds": 0,
+           "affinity": [],
+           "automount_service_account_token": true,
+           "container": [
+            {
+             "args": [],
+             "command": [],
+             "env": [
+              {
+               "name": "POSTGRES_PASSWORD",
+               "value": "",
+               "value_from": [
+                {
+                 "config_map_key_ref": [],
+                 "field_ref": [],
+                 "resource_field_ref": [],
+                 "secret_key_ref": [
+                  {
+                   "key": "POSTGRES_PASSWORD",
+                   "name": "smelt-db",
+                   "optional": false
+                  }
+                 ]
+                }
+               ]
+              },
+              {
+               "name": "POSTGRES_USER",
+               "value": "postgres",
+               "value_from": []
+              },
+              {
+               "name": "POSTGRES_DB",
+               "value": "smelt",
+               "value_from": []
+              },
+              {
+               "name": "PGDATA",
+               "value": "/var/lib/postgresql/data/pgdata",
+               "value_from": []
+              }
+             ],
+             "env_from": [],
+             "image": "postgres:17-alpine",
+             "image_pull_policy": "IfNotPresent",
+             "lifecycle": [],
+             "liveness_probe": [
+              {
+               "exec": [
+                {
+                 "command": [
+                  "pg_isready",
+                  "-U",
+                  "postgres"
+                 ]
+                }
+               ],
+               "failure_threshold": 3,
+               "grpc": [],
+               "http_get": [],
+               "initial_delay_seconds": 30,
+               "period_seconds": 30,
+               "success_threshold": 1,
+               "tcp_socket": [],
+               "timeout_seconds": 1
+              }
+             ],
+             "name": "postgres",
+             "port": [
+              {
+               "container_port": 5432,
+               "host_ip": "",
+               "host_port": 0,
+               "name": "postgres",
+               "protocol": "TCP"
+              }
+             ],
+             "readiness_probe": [
+              {
+               "exec": [
+                {
+                 "command": [
+                  "pg_isready",
+                  "-U",
+                  "postgres"
+                 ]
+                }
+               ],
+               "failure_threshold": 3,
+               "grpc": [],
+               "http_get": [],
+               "initial_delay_seconds": 5,
+               "period_seconds": 5,
+               "success_threshold": 1,
+               "tcp_socket": [],
+               "timeout_seconds": 1
+              }
+             ],
+             "resources": [
+              {
+               "limits": {
+                "memory": "1Gi"
+               },
+               "requests": {
+                "cpu": "100m",
+                "memory": "256Mi"
+               }
+              }
+             ],
+             "restart_policy": "",
+             "security_context": [],
+             "startup_probe": [],
+             "stdin": false,
+             "stdin_once": false,
+             "termination_message_path": "/dev/termination-log",
+             "termination_message_policy": "File",
+             "tty": false,
+             "volume_device": [],
+             "volume_mount": [
+              {
+               "mount_path": "/var/lib/postgresql/data",
+               "mount_propagation": "None",
+               "name": "data",
+               "read_only": false,
+               "sub_path": "",
+               "sub_path_expr": ""
+              }
+             ],
+             "working_dir": ""
+            }
+           ],
+           "dns_config": [],
+           "dns_policy": "ClusterFirst",
+           "enable_service_links": true,
+           "host_aliases": [],
+           "host_ipc": false,
+           "host_network": false,
+           "host_pid": false,
+           "hostname": "",
+           "image_pull_secrets": [],
+           "init_container": [],
+           "node_name": "",
+           "node_selector": {},
+           "os": [],
+           "priority_class_name": "",
+           "readiness_gate": [],
+           "restart_policy": "Always",
+           "runtime_class_name": "",
+           "scheduler_name": "default-scheduler",
+           "security_context": [
+            {
+             "fs_group": "5432",
+             "fs_group_change_policy": "",
+             "run_as_group": "",
+             "run_as_non_root": false,
+             "run_as_user": "",
+             "se_linux_options": [],
+             "seccomp_profile": [],
+             "supplemental_groups": [],
+             "sysctl": [],
+             "windows_options": []
+            }
+           ],
+           "service_account_name": "",
+           "share_process_namespace": false,
+           "subdomain": "",
+           "termination_grace_period_seconds": 30,
+           "toleration": [],
+           "topology_spread_constraint": [],
+           "volume": []
+          }
+         ]
+        }
+       ],
+       "update_strategy": [],
+       "volume_claim_template": [
+        {
+         "metadata": [
+          {
+           "annotations": {},
+           "generate_name": "",
+           "generation": 0,
+           "labels": {},
+           "name": "data",
+           "namespace": "default",
+           "resource_version": "",
+           "uid": ""
+          }
+         ],
+         "spec": [
+          {
+           "access_modes": [
+            "ReadWriteOnce"
+           ],
+           "resources": [
+            {
+             "limits": {},
+             "requests": {
+              "storage": "10Gi"
+             }
+            }
+           ],
+           "selector": [],
+           "storage_class_name": "",
+           "volume_mode": "Filesystem",
+           "volume_name": ""
+          }
+         ]
+        }
+       ]
+      }
+     ],
+     "timeouts": null,
+     "wait_for_rollout": true
+    },
+    "before_identity": {
+     "api_version": "apps/v1",
+     "kind": "StatefulSet",
+     "name": "smelt-db",
+     "namespace": "smelt-park"
+    },
+    "before_sensitive": {
+     "metadata": [
+      {
+       "annotations": {},
+       "labels": {}
+      }
+     ],
+     "spec": [
+      {
+       "persistent_volume_claim_retention_policy": [
+        {}
+       ],
+       "selector": [
+        {
+         "match_expressions": [],
+         "match_labels": {}
+        }
+       ],
+       "template": [
+        {
+         "metadata": [
+          {
+           "annotations": {},
+           "labels": {}
+          }
+         ],
+         "spec": [
+          {
+           "affinity": [],
+           "container": [
+            {
+             "args": [],
+             "command": [],
+             "env": [
+              {
+               "value_from": [
+                {
+                 "config_map_key_ref": [],
+                 "field_ref": [],
+                 "resource_field_ref": [],
+                 "secret_key_ref": [
+                  {}
+                 ]
+                }
+               ]
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              },
+              {
+               "value_from": []
+              }
+             ],
+             "env_from": [],
+             "lifecycle": [],
+             "liveness_probe": [
+              {
+               "exec": [
+                {
+                 "command": [
+                  false,
+                  false,
+                  false
+                 ]
+                }
+               ],
+               "grpc": [],
+               "http_get": [],
+               "tcp_socket": []
+              }
+             ],
+             "port": [
+              {}
+             ],
+             "readiness_probe": [
+              {
+               "exec": [
+                {
+                 "command": [
+                  false,
+                  false,
+                  false
+                 ]
+                }
+               ],
+               "grpc": [],
+               "http_get": [],
+               "tcp_socket": []
+              }
+             ],
+             "resources": [
+              {
+               "limits": {},
+               "requests": {}
+              }
+             ],
+             "security_context": [],
+             "startup_probe": [],
+             "volume_device": [],
+             "volume_mount": [
+              {}
+             ]
+            }
+           ],
+           "dns_config": [],
+           "host_aliases": [],
+           "image_pull_secrets": [],
+           "init_container": [],
+           "node_selector": {},
+           "os": [],
+           "readiness_gate": [],
+           "security_context": [
+            {
+             "se_linux_options": [],
+             "seccomp_profile": [],
+             "supplemental_groups": [],
+             "sysctl": [],
+             "windows_options": []
+            }
+           ],
+           "toleration": [],
+           "topology_spread_constraint": [],
+           "volume": []
+          }
+         ]
+        }
+       ],
+       "update_strategy": [],
+       "volume_claim_template": [
+        {
+         "metadata": [
+          {
+           "annotations": {},
+           "labels": {}
+          }
+         ],
+         "spec": [
+          {
+           "access_modes": [
+            false
+           ],
+           "resources": [
+            {
+             "limits": {},
+             "requests": {}
+            }
+           ],
+           "selector": []
+          }
+         ]
+        }
+       ]
+      }
+     ]
+    }
+   },
+   "index": 0,
+   "mode": "managed",
+   "module_address": "module.smelt",
+   "name": "database",
+   "provider_name": "registry.terraform.io/hashicorp/kubernetes",
+   "type": "kubernetes_stateful_set_v1"
+  },
+  {
+   "address": "module.smelt.random_password.database[0]",
+   "change": {
+    "actions": [
+     "no-op"
+    ],
+    "after": {
+     "bcrypt_hash": "SENSITIVE-MARKER-2",
+     "id": "none",
+     "keepers": {
+      "namespace": "smelt-park"
+     },
+     "length": 24,
+     "lower": true,
+     "min_lower": 0,
+     "min_numeric": 0,
+     "min_special": 0,
+     "min_upper": 0,
+     "number": true,
+     "numeric": true,
+     "override_special": null,
+     "result": "SENSITIVE-MARKER-3",
+     "special": false,
+     "upper": true
+    },
+    "after_sensitive": {
+     "bcrypt_hash": true,
+     "keepers": {},
+     "result": true
+    },
+    "after_unknown": {},
+    "before": {
+     "bcrypt_hash": "SENSITIVE-MARKER-2",
+     "id": "none",
+     "keepers": {
+      "namespace": "smelt-park"
+     },
+     "length": 24,
+     "lower": true,
+     "min_lower": 0,
+     "min_numeric": 0,
+     "min_special": 0,
+     "min_upper": 0,
+     "number": true,
+     "numeric": true,
+     "override_special": null,
+     "result": "SENSITIVE-MARKER-3",
+     "special": false,
+     "upper": true
+    },
+    "before_sensitive": {
+     "bcrypt_hash": true,
+     "keepers": {},
+     "result": true
+    }
+   },
+   "index": 0,
+   "mode": "managed",
+   "module_address": "module.smelt",
+   "name": "database",
+   "provider_name": "registry.terraform.io/hashicorp/random",
+   "type": "random_password"
+  }
+ ],
+ "terraform_version": "1.15.9"
+}

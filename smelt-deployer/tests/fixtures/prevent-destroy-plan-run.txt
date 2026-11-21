@@ -1,0 +1,437 @@
+module.smelt.kubernetes_limit_range_v1.sandbox_pod_max["smelt-park"]: Refreshing state... [id=smelt-park/sandbox-pod-max]
+module.monitoring.kubernetes_namespace_v1.monitoring: Refreshing state... [id=monitoring]
+module.smelt.kubernetes_namespace_v1.park: Refreshing state... [id=smelt-park]
+module.smelt.kubernetes_role_v1.park["smelt-park"]: Refreshing state... [id=smelt-park/park]
+module.monitoring.kubernetes_config_map_v1.tempo: Refreshing state... [id=monitoring/tempo]
+
+Terraform used the selected providers to generate the following execution
+plan. Resource actions are indicated with the following symbols:
+  + create
+  - destroy
+-/+ destroy and then create replacement
+
+Terraform planned the following actions, but then encountered a problem:
+
+  # module.smelt.kubernetes_limit_range_v1.sandbox_pod_max["smelt-park"] will be destroyed
+  # (because key ["smelt-park"] is not in for_each map)
+  - resource "kubernetes_limit_range_v1" "sandbox_pod_max" {
+      - id = "smelt-park/sandbox-pod-max" -> null
+
+      - metadata {
+          - annotations      = {} -> null
+          - generation       = 0 -> null
+          - labels           = {} -> null
+          - name             = "sandbox-pod-max" -> null
+          - namespace        = "smelt-park" -> null
+          - resource_version = "882" -> null
+          - uid              = "8aa9a7b8-a7ee-49e5-9039-306e1f672a9d" -> null
+            # (1 unchanged attribute hidden)
+        }
+
+      - spec {
+          - limit {
+              - default                 = {
+                  - "memory" = "4Gi"
+                } -> null
+              - default_request         = {
+                  - "memory" = "0"
+                } -> null
+              - max                     = {
+                  - "memory" = "4Gi"
+                } -> null
+              - max_limit_request_ratio = {} -> null
+              - min                     = {} -> null
+              - type                    = "Container" -> null
+            }
+        }
+    }
+
+  # module.smelt.kubernetes_limit_range_v1.sandbox_pod_max["smelt-park-renamed"] will be created
+  + resource "kubernetes_limit_range_v1" "sandbox_pod_max" {
+      + id = (known after apply)
+
+      + metadata {
+          + generation       = (known after apply)
+          + name             = "sandbox-pod-max"
+          + namespace        = "smelt-park-renamed"
+          + resource_version = (known after apply)
+          + uid              = (known after apply)
+        }
+
+      + spec {
+          + limit {
+              + default         = {
+                  + "memory" = "4Gi"
+                }
+              + default_request = {
+                  + "memory" = "0"
+                }
+              + max             = {
+                  + "memory" = "4Gi"
+                }
+              + type            = "Container"
+            }
+        }
+    }
+
+  # module.smelt.kubernetes_namespace_v1.park must be replaced
+-/+ resource "kubernetes_namespace_v1" "park" {
+      ~ id                               = "smelt-park" -> (known after apply)
+        # (1 unchanged attribute hidden)
+
+      ~ metadata {
+          ~ generation       = 0 -> (known after apply)
+          ~ name             = "smelt-park" -> "smelt-park-renamed" # forces replacement
+          ~ resource_version = "768" -> (known after apply)
+          ~ uid              = "b0f8340a-7657-403a-80df-7c4fc324ad2d" -> (known after apply)
+            # (1 unchanged attribute hidden)
+        }
+    }
+
+  # module.smelt.kubernetes_role_v1.park["smelt-park"] will be destroyed
+  # (because key ["smelt-park"] is not in for_each map)
+  - resource "kubernetes_role_v1" "park" {
+      - id = "smelt-park/park" -> null
+
+      - metadata {
+          - generation       = 0 -> null
+          - name             = "park" -> null
+          - namespace        = "smelt-park" -> null
+          - resource_version = "773" -> null
+          - uid              = "00c763bb-077f-49be-8a12-98311b680f3f" -> null
+        }
+
+      - rule {
+          - api_groups     = [
+              - null,
+            ] -> null
+          - resource_names = [] -> null
+          - resources      = [
+              - "pods",
+            ] -> null
+          - verbs          = [
+              - "create",
+              - "delete",
+              - "get",
+              - "list",
+              - "patch",
+              - "watch",
+            ] -> null
+        }
+      - rule {
+          - api_groups     = [
+              - null,
+            ] -> null
+          - resource_names = [] -> null
+          - resources      = [
+              - "pods/exec",
+            ] -> null
+          - verbs          = [
+              - "create",
+              - "get",
+            ] -> null
+        }
+      - rule {
+          - api_groups     = [
+              - null,
+            ] -> null
+          - resource_names = [] -> null
+          - resources      = [
+              - "pods/portforward",
+            ] -> null
+          - verbs          = [
+              - "create",
+              - "get",
+            ] -> null
+        }
+      - rule {
+          - api_groups     = [
+              - null,
+            ] -> null
+          - resource_names = [] -> null
+          - resources      = [
+              - "pods/log",
+            ] -> null
+          - verbs          = [
+              - "get",
+            ] -> null
+        }
+      - rule {
+          - api_groups     = [
+              - null,
+            ] -> null
+          - resource_names = [] -> null
+          - resources      = [
+              - "persistentvolumeclaims",
+            ] -> null
+          - verbs          = [
+              - "create",
+              - "delete",
+              - "get",
+              - "list",
+              - "patch",
+              - "watch",
+            ] -> null
+        }
+      - rule {
+          - api_groups     = [
+              - null,
+            ] -> null
+          - resource_names = [] -> null
+          - resources      = [
+              - "configmaps",
+              - "secrets",
+              - "services",
+            ] -> null
+          - verbs          = [
+              - "create",
+              - "delete",
+              - "get",
+              - "list",
+              - "patch",
+            ] -> null
+        }
+      - rule {
+          - api_groups     = [
+              - "networking.k8s.io",
+            ] -> null
+          - resource_names = [] -> null
+          - resources      = [
+              - "ingresses",
+            ] -> null
+          - verbs          = [
+              - "create",
+              - "delete",
+              - "get",
+              - "list",
+              - "patch",
+            ] -> null
+        }
+      - rule {
+          - api_groups     = [
+              - null,
+            ] -> null
+          - resource_names = [] -> null
+          - resources      = [
+              - "endpoints",
+              - "events",
+              - "limitranges",
+              - "resourcequotas",
+            ] -> null
+          - verbs          = [
+              - "get",
+              - "list",
+            ] -> null
+        }
+      - rule {
+          - api_groups     = [
+              - "metrics.k8s.io",
+            ] -> null
+          - resource_names = [] -> null
+          - resources      = [
+              - "pods",
+            ] -> null
+          - verbs          = [
+              - "get",
+              - "list",
+            ] -> null
+        }
+      - rule {
+          - api_groups     = [
+              - "discovery.k8s.io",
+            ] -> null
+          - resource_names = [] -> null
+          - resources      = [
+              - "endpointslices",
+            ] -> null
+          - verbs          = [
+              - "get",
+              - "list",
+            ] -> null
+        }
+    }
+
+  # module.smelt.kubernetes_role_v1.park["smelt-park-renamed"] will be created
+  + resource "kubernetes_role_v1" "park" {
+      + id = (known after apply)
+
+      + metadata {
+          + generation       = (known after apply)
+          + name             = "park"
+          + namespace        = "smelt-park-renamed"
+          + resource_version = (known after apply)
+          + uid              = (known after apply)
+        }
+
+      + rule {
+          + api_groups     = [
+              + null,
+            ]
+          + resource_names = []
+          + resources      = [
+              + "pods",
+            ]
+          + verbs          = [
+              + "create",
+              + "delete",
+              + "get",
+              + "list",
+              + "patch",
+              + "watch",
+            ]
+        }
+      + rule {
+          + api_groups     = [
+              + null,
+            ]
+          + resource_names = []
+          + resources      = [
+              + "pods/exec",
+            ]
+          + verbs          = [
+              + "create",
+              + "get",
+            ]
+        }
+      + rule {
+          + api_groups     = [
+              + null,
+            ]
+          + resource_names = []
+          + resources      = [
+              + "pods/portforward",
+            ]
+          + verbs          = [
+              + "create",
+              + "get",
+            ]
+        }
+      + rule {
+          + api_groups     = [
+              + null,
+            ]
+          + resource_names = []
+          + resources      = [
+              + "pods/log",
+            ]
+          + verbs          = [
+              + "get",
+            ]
+        }
+      + rule {
+          + api_groups     = [
+              + null,
+            ]
+          + resource_names = []
+          + resources      = [
+              + "persistentvolumeclaims",
+            ]
+          + verbs          = [
+              + "create",
+              + "delete",
+              + "get",
+              + "list",
+              + "patch",
+              + "watch",
+            ]
+        }
+      + rule {
+          + api_groups     = [
+              + null,
+            ]
+          + resource_names = []
+          + resources      = [
+              + "configmaps",
+              + "secrets",
+              + "services",
+            ]
+          + verbs          = [
+              + "create",
+              + "delete",
+              + "get",
+              + "list",
+              + "patch",
+            ]
+        }
+      + rule {
+          + api_groups     = [
+              + "networking.k8s.io",
+            ]
+          + resource_names = []
+          + resources      = [
+              + "ingresses",
+            ]
+          + verbs          = [
+              + "create",
+              + "delete",
+              + "get",
+              + "list",
+              + "patch",
+            ]
+        }
+      + rule {
+          + api_groups     = [
+              + null,
+            ]
+          + resource_names = []
+          + resources      = [
+              + "endpoints",
+              + "events",
+              + "limitranges",
+              + "resourcequotas",
+            ]
+          + verbs          = [
+              + "get",
+              + "list",
+            ]
+        }
+      + rule {
+          + api_groups     = [
+              + "metrics.k8s.io",
+            ]
+          + resource_names = []
+          + resources      = [
+              + "pods",
+            ]
+          + verbs          = [
+              + "get",
+              + "list",
+            ]
+        }
+      + rule {
+          + api_groups     = [
+              + "discovery.k8s.io",
+            ]
+          + resource_names = []
+          + resources      = [
+              + "endpointslices",
+            ]
+          + verbs          = [
+              + "get",
+              + "list",
+            ]
+        }
+    }
+
+Plan: 3 to add, 0 to change, 3 to destroy.
+
+Warning: Resource targeting is in effect
+
+You are creating a plan with the -target option, which means that the result
+of this plan may not represent all of the changes requested by the current
+configuration.
+
+The -target option is not for routine use, and is provided only for
+exceptional situations such as recovering from errors or mistakes, or when
+Terraform specifically suggests to use it as part of an error message.
+
+Error: Instance cannot be destroyed
+
+  on .terraform/modules/smelt/terraform/smelt/rbac.tf line 72:
+  72: resource "kubernetes_namespace_v1" "park" {
+
+Resource module.smelt.kubernetes_namespace_v1.park has
+lifecycle.prevent_destroy set, but the plan calls for this resource to be
+destroyed. To avoid this error and continue with the plan, either disable
+lifecycle.prevent_destroy or reduce the scope of the plan using the -target
+option.
