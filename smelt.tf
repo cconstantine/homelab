@@ -6,15 +6,15 @@
 # a k3d cluster (`terraform/test-cluster`), including smelt's own
 # real-cluster pod-lifecycle test.
 
-# The images are what smelt's publish-images workflow pushes to GHCR. The
-# `:latest` tag tracks main, so this deploy follows smelt without tag edits:
-# `terraform plan && terraform apply` picks up whatever main built last. The
-# catch is that a moving tag doesn't make a running Deployment roll (its pod
-# template never changes and the pull policy is IfNotPresent), so a restarted
-# pod — or `kubectl rollout restart` — is what actually pulls the new image.
+# The images are what smelt's publish-images workflow pushes to GHCR, tagged
+# with the 12-character SHA of the smelt main commit they were built from. A
+# deploy (smelt-deployer/DEPLOY.md) sets three lines to the same SHA: the
+# module source's `?ref=`, `image` and `sandbox_image`, so the module code and
+# the images always come from one commit (SME-663). A changed ref needs
+# `terraform init` again before the plan.
 
 module "smelt" {
-  source = "git::https://github.com/cconstantine/smelt.git//terraform/smelt?ref=main"
+  source = "git::ssh://git@github.com/cconstantine/smelt.git//terraform/smelt?ref=da513c7fdd37"
 
   image         = "ghcr.io/cconstantine/smelt:59360208c47e"
   sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:59360208c47e"

@@ -90,9 +90,12 @@ it tells you it restarted during your turn so you can carry on.
 
 ## 3. Change the image
 
-- In `smelt.tf`, set both `image` and `sandbox_image` to the new SHA tag.
-  Change nothing else.
+- In `smelt.tf`, set three lines to the new SHA: the module `source`'s
+  `?ref=`, `image` and `sandbox_image` (SME-663). Change nothing else.
 - Commit locally: `git commit -am "smelt <SHA>"`. Don't push yet.
+- Run `terraform init -input=false` again (`TF_CLI_CONFIG_FILE` from step 2
+  must still be set): a changed ref needs it. Its output must show
+  `Downloading git::ssh://git@github.com/cconstantine/smelt.git?ref=<SHA> for smelt...`.
 
 ## 4. Plan, and check the plan
 
@@ -109,7 +112,7 @@ Stop and report, without applying, if any of these is true:
 
 An image change normally updates `kubernetes_deployment_v1.smelt` in place. It
 may also update the database StatefulSet or other module objects if the module
-itself changed. Say what the plan does before applying it.
+changed between the old and new ref. Say what the plan does before applying it.
 
 ## 5. Apply
 
@@ -139,7 +142,7 @@ When the command finishes, or when smelt says it restarted during your turn:
   back. If the push is refused as non-fast-forward, fetch,
   rebase only your one `smelt.tf` commit onto `origin/master`
   (`git fetch origin && git rebase origin/master`), check that its diff is still
-  just the `image` and `sandbox_image` lines, and push once more. If the rebase
+  just the `ref`, `image` and `sandbox_image` lines, and push once more. If the rebase
   conflicts (another deploy moved those lines: `git rebase --abort`) or the push
   fails again, report the commit to the user rather than dropping it. Never force-push.
 - On failure, report the log tail.
