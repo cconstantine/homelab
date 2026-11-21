@@ -7,7 +7,8 @@
 # plus the marker <git-dir>/smelt-deploy-<SHA>.applied (the commit, then
 # terraform's exit code), which outlives a lost pod as the commit does.
 # Exits: 3 any failure once the apply has started — verify, push, rebase,
-# check-commit — with "commit <sha>" printed: report that sha to the user;
+# check-commit, and the refusals once one ran (a re-apply, --resume on a HEAD
+# that isn't the deploy commit) — with "commit <sha>" printed: report that sha;
 # 4 a terraform is still running (wait, then --resume); 5 the apply was
 # interrupted (report; never re-apply); 1 a failure before the
 # apply started (nothing applied).
@@ -43,7 +44,12 @@ on_exit() {
   local rc=$?
   [ -n "$APPLY_STARTED" ] && [ "$rc" -ne 0 ] || return 0
   [ "$rc" -eq 5 ] || rc=3
-  echo "commit $(git rev-parse HEAD): the apply ran; report this sha to the user, never discard" >&2
+  # HEAD, unless it isn't the deploy commit (then the one the apply recorded).
+  local commit
+  commit=$(git rev-parse HEAD)
+  [ "$(git log -1 --format=%s)" = "smelt $SHA" ] ||
+    commit=$(sed -n 's/^commit //p' "$MARK" 2>/dev/null | head -n 1 || true)
+  echo "commit ${commit:-unknown}: the apply ran; report this sha to the user, never discard" >&2
   exit "$rc"
 }
 trap on_exit EXIT
@@ -122,7 +128,7 @@ finish() {
   record "apply: OK $SHA pushed $(git rev-parse --short=12 HEAD)"
 }
 
-[ "$(git log -1 --format=%s)" = "smelt $SHA" ] || fail "HEAD's subject isn't 'smelt $SHA': prepare first"
+head_ok() { [ "$(git log -1 --format=%s)" = "smelt $SHA" ]; }
 
 if [ "$MODE" = --resume ]; then
   step "resume"
@@ -131,6 +137,7 @@ if [ "$MODE" = --resume ]; then
   fi
   apply_ran || fail "neither $MARK nor $LOG: no apply ran for $SHA, so there is nothing to resume"
   APPLY_STARTED=1
+  head_ok || fail "HEAD's subject isn't 'smelt $SHA', and an apply ran: report; never discard or re-apply"
   [ -e "$LOG" ] || record "note: no $LOG (the pod was lost?); going by $MARK and the cluster"
   rc=$(sed -n 's/^terraform apply exited \([0-9]*\)$/\1/p' "$MARK" 2>/dev/null || true)
   if [ -n "$rc" ] && [ "$rc" -ne 0 ]; then apply_failed "$rc"; fi
@@ -145,8 +152,10 @@ if [ "$MODE" = --resume ]; then
 fi
 
 step "preconditions"
+# An apply already ran: exit 3 (the trap), whatever else is true.
+if apply_ran; then APPLY_STARTED=1; fail "an apply already ran: use --resume, never re-apply"; fi
+head_ok || fail "HEAD's subject isn't 'smelt $SHA': prepare first"
 [ -f "$DIR/smelt.plan" ] || fail "no $DIR/smelt.plan: prepare first"
-[ ! -e "$LOG" ] || fail "an apply already ran: use --resume, never re-apply"
 ok "plan $DIR/smelt.plan"
 
 step "terraform apply"
