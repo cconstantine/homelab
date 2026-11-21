@@ -80,8 +80,14 @@ trap 'echo "after this stop: smelt-deployer/deploy-discard.sh $SHA" >&2' EXIT
 step "5/8 terraform init (the changed ref needs it, SME-663)"
 terraform init -input=false -no-color >"$DIR/init.txt" 2>&1 || {
   tail -20 "$DIR/init.txt" >&2; fail "terraform init failed"; }
-grep -q "?ref=$SHA" "$DIR/init.txt" || fail "init's output doesn't mention ?ref=$SHA (see $DIR/init.txt)"
-ok "module at ?ref=$SHA"
+# Init prints a Downloading line only when the source changed (not when only
+# the images move), so check what it installed: modules.json's smelt source.
+installed=$(python3 -I -c 'import json, sys
+mods = json.load(open(".terraform/modules/modules.json"))["Modules"]
+print(next(m["Source"] for m in mods if m["Key"] == "smelt"))' 2>/dev/null) ||
+  fail "can't read the smelt module from .terraform/modules/modules.json after init"
+[[ "$installed" == *"?ref=$SHA" ]] || fail "init installed $installed, not ?ref=$SHA (see $DIR/init.txt)"
+ok "module at ?ref=$SHA ($installed)"
 
 step "6/8 terraform plan -target=module.smelt"
 set +e
