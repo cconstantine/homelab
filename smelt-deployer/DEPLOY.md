@@ -65,10 +65,10 @@ It applies the saved plan, checks the image and the rollout, and pushes the
 commit (rebasing once if master moved; never forcing). When it ends, or smelt
 says it restarted: `tail -30 ~/deploy-<SHA>.log ~/deploy-<SHA>.steps`. If the
 script died, `deploy-apply.sh <SHA> --resume`. Exit 3 is any failure once the
-apply started (the image or rollout check, the push, the rebase, its
-check-commit, a re-apply or a `--resume` on a moved HEAD): report the `commit <sha>` it prints to the user. Exit 4 (from
-`--resume`): a terraform is still running; wait for it, then `--resume`
-again. Exit 5: the apply was interrupted; report, never re-apply. From here
+apply started (the apply itself, the image or rollout check, the push, the
+rebase, its check-commit, a re-apply or a `--resume` on a moved HEAD): report
+the `commit <sha>` it prints to the user. Exit 4 (from `--resume`): a
+terraform is still running; wait for it, then `--resume` again. Exit 5: the apply was interrupted; report, never re-apply. From here
 on `deploy-discard.sh` refuses: don't drop the commit. The apply's marker,
 `.git/smelt-deploy-<SHA>.applied`, sits beside the commit, so after a lost pod
 (`~` gone, the log with it) discard still refuses and `--resume` still checks

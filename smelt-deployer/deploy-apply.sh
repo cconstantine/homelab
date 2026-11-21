@@ -6,9 +6,10 @@
 # record is ~/deploy-<SHA>.log (terraform's output) and ~/deploy-<SHA>.steps,
 # plus the marker <git-dir>/smelt-deploy-<SHA>.applied (the commit, then
 # terraform's exit code), which outlives a lost pod as the commit does.
-# Exits: 3 any failure once the apply has started — verify, push, rebase,
-# check-commit, and the refusals once one ran (a re-apply, --resume on a HEAD
-# that isn't the deploy commit) — with "commit <sha>" printed: report that sha;
+# Exits: 3 any failure once the apply has started — the apply itself
+# (terraform apply exiting non-zero), verify, push, rebase, check-commit, and
+# the refusals once one ran (a re-apply, --resume on a HEAD that isn't the
+# deploy commit) — with "commit <sha>" printed: report that sha;
 # 4 a terraform is still running (wait, then --resume); 5 the apply was
 # interrupted (report; never re-apply); 1 a failure before the
 # apply started (nothing applied).
