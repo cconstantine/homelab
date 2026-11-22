@@ -41,3 +41,33 @@ groups:
               "workload", "$1", "owner_name", "(.*)"),
               "workload_type", "$1", "owner_kind", "(.*)")
         )
+
+  # SME-686: sandbox claims on local-path have no size cap; watch the
+  # disk holding its base dir (/var/lib/rancher/k3s/storage): the
+  # /var/lib/rancher mount where a node has one, else /.
+  # Tests: rules_test.yml (promtool test rules).
+  - name: node_disk
+    rules:
+    - record: instance:local_path_filesystem_avail:ratio
+      expr: |
+        (
+          node_filesystem_avail_bytes{job="kubernetes-pods",name="node-exporter",mountpoint="/var/lib/rancher"}
+            / node_filesystem_size_bytes{job="kubernetes-pods",name="node-exporter",mountpoint="/var/lib/rancher"}
+        )
+        or on (instance)
+        (
+          node_filesystem_avail_bytes{job="kubernetes-pods",name="node-exporter",mountpoint="/"}
+            / node_filesystem_size_bytes{job="kubernetes-pods",name="node-exporter",mountpoint="/"}
+        )
+    - alert: LocalPathDiskLow
+      expr: instance:local_path_filesystem_avail:ratio < 0.15
+      for: 15m
+      labels: {severity: warning}
+      annotations:
+        summary: "{{ $labels.instance }} {{ $labels.mountpoint }}: {{ $value | humanizePercentage }} free (local-path volumes)"
+    - alert: LocalPathDiskCritical
+      expr: instance:local_path_filesystem_avail:ratio < 0.05
+      for: 5m
+      labels: {severity: critical}
+      annotations:
+        summary: "{{ $labels.instance }} {{ $labels.mountpoint }}: {{ $value | humanizePercentage }} free (local-path volumes)"
