@@ -16,10 +16,10 @@
 # init` needs a GitHub key with read access to cconstantine/smelt.
 
 module "smelt" {
-  source = "git::ssh://git@github.com/cconstantine/smelt.git//terraform/smelt?ref=9a53abb4c7ef"
+  source = "git::ssh://git@github.com/cconstantine/smelt.git//terraform/smelt?ref=e36c21c159e8"
 
-  image         = "ghcr.io/cconstantine/smelt:9a53abb4c7ef"
-  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:9a53abb4c7ef"
+  image         = "ghcr.io/cconstantine/smelt:e36c21c159e8"
+  sandbox_image = "ghcr.io/cconstantine/smelt-sandbox:e36c21c159e8"
 
   # Lets smelt read PersistentVolumes and StorageClasses cluster-wide, so its
   # Sandboxes page shows the claims' class and their Released volumes
