@@ -398,3 +398,57 @@ resource "helm_release" "arc_runner_set" {
     }
   })]
 }
+
+# smelt's sub-minute jobs that need no Docker daemon (SME-753): ci.yml's
+# `changes`, publish-images.yml's `source` and its two manifest jobs. A plain
+# runner, no dind: those jobs waited 94-633 s for room on the dind sets
+# (10-12Gi each) while the median runner pod peaked at 0.2GiB. A job that
+# needs Docker stays on arc-runner-smelt-amd64(-browser): there is no daemon
+# here. Not in runner_targets, whose template always adds dind.
+resource "helm_release" "arc_runner_set_smelt_light" {
+  name       = "arc-runner-smelt-amd64-light"
+  namespace  = kubernetes_namespace.arc_runners.metadata.0.name
+  repository = "oci://ghcr.io/actions/actions-runner-controller-charts"
+  chart      = "gha-runner-scale-set"
+  version    = "0.14.0"
+
+  depends_on = [
+    helm_release.arc_controller,
+    kubernetes_secret.arc_github_pat_smelt,
+  ]
+
+  values = [yamlencode({
+    githubConfigUrl    = "https://github.com/cconstantine/smelt"
+    githubConfigSecret = kubernetes_secret.arc_github_pat_smelt.metadata.0.name
+    runnerScaleSetName = "arc-runner-smelt-amd64-light"
+    minRunners         = 0
+    maxRunners         = 4
+    listenerTemplate = {
+      spec = {
+        tolerations = local.prefer_xavier_vm.tolerations
+        affinity    = local.prefer_xavier_vm.affinity
+        containers = [{
+          name = "listener"
+          resources = {
+            requests = { cpu = "100m", memory = "256Mi" }
+            limits   = { memory = "512Mi" }
+          }
+        }]
+      }
+    }
+    template = {
+      spec = {
+        nodeSelector = { "kubernetes.io/arch" = "amd64" }
+        containers = [{
+          name    = "runner"
+          image   = "ghcr.io/actions/actions-runner:latest"
+          command = ["/home/runner/run.sh"]
+          resources = {
+            requests = { cpu = "500m", memory = "1Gi" }
+            limits   = { memory = "2Gi" }
+          }
+        }]
+      }
+    }
+  })]
+}
