@@ -32,7 +32,7 @@
 locals {
   # The served size: a key of strata_models. Each keeps its own folder, so
   # switching back is this line and a restart.
-  strata_model = "UD-IQ4_XS-v31"
+  strata_model = "UD-Q4_K_XL"
 
   strata_models = {
     IQ3_S = {
@@ -89,6 +89,36 @@ locals {
       }
       # Same RAM budget as UD-IQ4_XS, so the same reason to mmap the table.
       args = { "--ple-io" = "mmap" }
+    }
+    # Unsloth's 4-bit K-quant experts: mean KL vs Q8_0 0.056 instead of
+    # UD-IQ4_XS's 0.101, top token 93.1% instead of 88.9%, p99 KL 0.83
+    # instead of 1.60 (Strata's docs/QUANTS.md). The v3.1 re-shard at
+    # d9620119: the same tensors as the 38bb39ee files Strata downloads, with
+    # the n-gram table in a shard of its own -- byte-identical to
+    # UD-IQ4_XS-v31's last shard. Strata takes this layout from files already
+    # in MODEL_PATH (setup.py's UNSLOTH_Q4_V31_SHARDS). 77GB of experts,
+    # ~17.5GB more than UD-IQ4_XS, so part of them may be read from the SSD.
+    "UD-Q4_K_XL" = {
+      family  = "unsloth"
+      hf_path = "unsloth/Qwen3.8-Flash-Next-GGUF/resolve/d96201194f103c906994f283f504209dc8d2a10c/UD-Q4_K_XL"
+      # name -> sha256, as pinned in Strata's setup.py (UNSLOTH_Q4_V31_SHARDS)
+      files = {
+        "Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf" = "acc44040f74d0e55fb89c3967056cce5dbda1bcc52e909c3ba6fc72b5e9c0858"
+        "Qwen3.8-Flash-Next-UD-Q4_K_XL-00002-of-00004.gguf" = "45792ae869072d8229384c51c7c73dd959e191505252b41dd71852d9746f5ce4"
+        "Qwen3.8-Flash-Next-UD-Q4_K_XL-00003-of-00004.gguf" = "8c76e79d444b16a663d9c8db54e585ed3b1da13eebd2619c37b0c355da803c82"
+        "Qwen3.8-Flash-Next-UD-Q4_K_XL-00004-of-00004.gguf" = "5de8b5dbf89409acc39468decafd4a4a95b13c29d88a14b0356107897829ec36"
+      }
+      args = {
+        # Setup would pick --ple-io ram here too (93 GiB clears its 48 +
+        # 28.8 + 16 GB rule): the same out-of-RAM kill as UD-IQ4_XS.
+        "--ple-io" = "mmap"
+        # Setup would keep every expert in RAM (93 GiB clears 71.7 + 16),
+        # a 71.7GiB pinned arena that leaves ~4GiB of MemAvailable beside the
+        # conversation cache. 56 is the arena UD-IQ4_XS holds (28796 2MiB
+        # pages): the same RAM footprint, the hottest experts in RAM and the
+        # other ~16GiB read from the GGUF through the file cache.
+        "--resident-budget-gib" = "56"
+      }
     }
   }
 
@@ -338,6 +368,14 @@ resource "kubernetes_deployment_v1" "strata_ryzen" {
               name  = "FAMILY"
               value = env.value
             }
+          }
+          # The per-size flags again, as `strata launch --set flag=value`
+          # (the entrypoint passes each word of STRATA_SET): applied to the
+          # launch config at every start, including a new size's first,
+          # before any run settings exist for the wrapper above to patch.
+          env {
+            name  = "STRATA_SET"
+            value = join(" ", [for flag, value in local.strata.args : "${trimprefix(flag, "--")}=${value}"])
           }
           env {
             name  = "MODEL_PATH"
