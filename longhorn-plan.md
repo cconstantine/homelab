@@ -76,8 +76,8 @@ Node notes:
 |---|---|---|
 | Prowlarr | 22 MB | Move first, as the trial |
 | `srvr` | 8 MB | Move next |
-| Omniroute | 25 MB | Move next |
-| `chat` | 895 MB | Move next |
+| Omniroute | 25 MB | Removed 2026-11-23; data left in `/storage/omniroute/data` on `homelab` |
+| `chat` | 895 MB | Removed 2026-11-23; data left in `/storage/chat/data` on `homelab` |
 | Grafana | 957 MB | Move next |
 | Tempo | Not measured | Move next if its write load looks reasonable |
 | Claude-park config and memory | 7 MB, 212 KB | RWX, after testing |

@@ -138,6 +138,35 @@ resource "kubernetes_secret" "arc_github_pat_smelt" {
   }
 }
 
+# The controller and the listeners are small, always-on and not
+# performance-critical, so they prefer xavier-vm (see xavier-vm.tf) and leave
+# memory requests on the busier nodes. Only a preference: if xavier-vm drops
+# off the network they reschedule elsewhere instead of waiting for it.
+locals {
+  prefer_xavier_vm = {
+    tolerations = [{
+      key      = "homelab/vm"
+      operator = "Equal"
+      value    = "firecracker"
+      effect   = "PreferNoSchedule"
+    }]
+    affinity = {
+      nodeAffinity = {
+        preferredDuringSchedulingIgnoredDuringExecution = [{
+          weight = 100
+          preference = {
+            matchExpressions = [{
+              key      = "homelab/vm"
+              operator = "In"
+              values   = ["firecracker"]
+            }]
+          }
+        }]
+      }
+    }
+  }
+}
+
 resource "helm_release" "arc_controller" {
   name       = "arc"
   namespace  = kubernetes_namespace.arc.metadata.0.name
@@ -145,12 +174,12 @@ resource "helm_release" "arc_controller" {
   chart      = "gha-runner-scale-set-controller"
   version    = "0.14.0"
 
-  values = [yamlencode({
+  values = [yamlencode(merge(local.prefer_xavier_vm, {
     resources = {
       requests = { cpu = "10m", memory = "64Mi" }
       limits   = { memory = "96Mi" }
     }
-  })]
+  }))]
 
   wait = true
 }
@@ -193,13 +222,13 @@ resource "helm_release" "arc_runner_set" {
     runnerScaleSetName = "arc-runner-${each.key}"
     minRunners         = each.value.min_runners
     maxRunners         = each.value.max_runners
-    # Keep the listener on an x86_64 node; left to the scheduler it can land
-    # on an arm node, where it couldn't resolve api.github.com (pixo-8, since removed).
+    # Listeners prefer xavier-vm (local.prefer_xavier_vm). They used to be
+    # pinned to amd64 because pixo-8 (an arm node, since removed) couldn't
+    # resolve api.github.com; xavier-vm's own runners reach GitHub fine.
     listenerTemplate = {
       spec = {
-        nodeSelector = {
-          "kubernetes.io/arch" = "amd64"
-        }
+        tolerations = local.prefer_xavier_vm.tolerations
+        affinity    = local.prefer_xavier_vm.affinity
         containers = [{
           name = "listener"
           # It only polls GitHub for jobs and watches the scale set; it is

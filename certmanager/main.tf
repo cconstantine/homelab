@@ -1,3 +1,32 @@
+# cert-manager is small, always-on and not performance-critical, so its pods
+# prefer xavier-vm (see xavier-vm.tf) and leave memory requests on the busier
+# nodes. Only a preference: if xavier-vm drops off the network they
+# reschedule elsewhere, so the webhook doesn't wait on that node.
+locals {
+  prefer_xavier_vm = {
+    tolerations = [{
+      key      = "homelab/vm"
+      operator = "Equal"
+      value    = "firecracker"
+      effect   = "PreferNoSchedule"
+    }]
+    affinity = {
+      nodeAffinity = {
+        preferredDuringSchedulingIgnoredDuringExecution = [{
+          weight = 100
+          preference = {
+            matchExpressions = [{
+              key      = "homelab/vm"
+              operator = "In"
+              values   = ["firecracker"]
+            }]
+          }
+        }]
+      }
+    }
+  }
+}
+
 resource "helm_release" "cert_manager" {
   name       = "cert-manager"
   namespace  = kubernetes_namespace.cert_manager.metadata.0.name
@@ -10,24 +39,24 @@ resource "helm_release" "cert_manager" {
     value = "true"
   }]
 
-  values = [yamlencode({
+  values = [yamlencode(merge(local.prefer_xavier_vm, {
     resources = {
       requests = { cpu = "10m", memory = "80Mi" }
       limits   = { memory = "112Mi" }
     }
-    cainjector = {
+    cainjector = merge(local.prefer_xavier_vm, {
       resources = {
         requests = { cpu = "10m", memory = "64Mi" }
         limits   = { memory = "96Mi" }
       }
-    }
-    webhook = {
+    })
+    webhook = merge(local.prefer_xavier_vm, {
       resources = {
         requests = { cpu = "10m", memory = "48Mi" }
         limits   = { memory = "80Mi" }
       }
-    }
-  })]
+    })
+  }))]
 
   wait = true
 }
