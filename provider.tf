@@ -18,6 +18,10 @@ terraform {
     kubectl = {
       source = "gavinbunney/kubectl"
     }
+    github = {
+      source  = "integrations/github"
+      version = "~> 6.0"
+    }
   }
   backend "kubernetes" {
     secret_suffix = "state"
