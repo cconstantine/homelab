@@ -1634,7 +1634,7 @@
     {
       "type": "row",
       "id": 22,
-      "title": "3 \u00b7 Which namespace is holding it? (click a namespace to drill in)",
+      "title": "3 \u00b7 Who's holding each node? (whole nodes; ignores the namespace/workload filters)",
       "collapsed": false,
       "gridPos": {
         "h": 1,
@@ -1645,8 +1645,650 @@
       "panels": []
     },
     {
-      "type": "stat",
+      "type": "barchart",
       "id": 23,
+      "title": "Memory requests by workload, % of node",
+      "description": "One bar per node, as % of the node's allocatable memory; the empty part of the bar is what's still free. Each segment is a workload (namespace/workload) holding at least 5% of that node; smaller ones are summed into 'other'. smelt-park/sandbox-<n> is all sandbox pods on that node together. Nodes that are down or cordoned have no allocatable and don't show. The tables below list every pod per node.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 0,
+        "y": 40
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(sum by (node, seg) (label_join((sum by (node, namespace, workload) (((sum by (namespace, pod, node) ((kube_pod_container_resource_requests{resource=\"memory\", node=~\"$node\"} or ((kube_pod_init_container_resource_requests{resource=\"memory\", node=~\"$node\"} * on(namespace, pod, container) group_left() max by (namespace, pod, container) (kube_pod_init_container_info{restart_policy=\"Always\"})) or (kube_pod_init_container_resource_requests{resource=\"memory\", node=~\"$node\"} unless on(namespace, pod) kube_pod_init_container_info))) * on(namespace, pod) group_left() (max by (namespace, pod) (kube_pod_status_phase{phase=~\"Pending|Running\"}) == 1))) * on(namespace, pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel)) > on(node) group_left() (0.05 * sum by (node) (kube_node_status_allocatable{resource=\"memory\", node=~\"$node\"} and on(node) (max by (node) (kube_node_status_condition{condition=\"Ready\", status=\"true\"}) == 1 unless on(node) (kube_node_spec_unschedulable == 1))))), \"seg\", \"/\", \"namespace\", \"workload\") or label_replace(sum by (node) (sum by (node, namespace, workload) (((sum by (namespace, pod, node) ((kube_pod_container_resource_requests{resource=\"memory\", node=~\"$node\"} or ((kube_pod_init_container_resource_requests{resource=\"memory\", node=~\"$node\"} * on(namespace, pod, container) group_left() max by (namespace, pod, container) (kube_pod_init_container_info{restart_policy=\"Always\"})) or (kube_pod_init_container_resource_requests{resource=\"memory\", node=~\"$node\"} unless on(namespace, pod) kube_pod_init_container_info))) * on(namespace, pod) group_left() (max by (namespace, pod) (kube_pod_status_phase{phase=~\"Pending|Running\"}) == 1))) * on(namespace, pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel))) - (sum by (node) ((sum by (node, namespace, workload) (((sum by (namespace, pod, node) ((kube_pod_container_resource_requests{resource=\"memory\", node=~\"$node\"} or ((kube_pod_init_container_resource_requests{resource=\"memory\", node=~\"$node\"} * on(namespace, pod, container) group_left() max by (namespace, pod, container) (kube_pod_init_container_info{restart_policy=\"Always\"})) or (kube_pod_init_container_resource_requests{resource=\"memory\", node=~\"$node\"} unless on(namespace, pod) kube_pod_init_container_info))) * on(namespace, pod) group_left() (max by (namespace, pod) (kube_pod_status_phase{phase=~\"Pending|Running\"}) == 1))) * on(namespace, pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel)) > on(node) group_left() (0.05 * sum by (node) (kube_node_status_allocatable{resource=\"memory\", node=~\"$node\"} and on(node) (max by (node) (kube_node_status_condition{condition=\"Ready\", status=\"true\"}) == 1 unless on(node) (kube_node_spec_unschedulable == 1)))))) or sum by (node) (sum by (node, namespace, workload) (((sum by (namespace, pod, node) ((kube_pod_container_resource_requests{resource=\"memory\", node=~\"$node\"} or ((kube_pod_init_container_resource_requests{resource=\"memory\", node=~\"$node\"} * on(namespace, pod, container) group_left() max by (namespace, pod, container) (kube_pod_init_container_info{restart_policy=\"Always\"})) or (kube_pod_init_container_resource_requests{resource=\"memory\", node=~\"$node\"} unless on(namespace, pod) kube_pod_init_container_info))) * on(namespace, pod) group_left() (max by (namespace, pod) (kube_pod_status_phase{phase=~\"Pending|Running\"}) == 1))) * on(namespace, pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel))) * 0), \"seg\", \"other (small pods)\", \"\", \"\")) / on(node) group_left() sum by (node) (kube_node_status_allocatable{resource=\"memory\", node=~\"$node\"} and on(node) (max by (node) (kube_node_status_condition{condition=\"Ready\", status=\"true\"}) == 1 unless on(node) (kube_node_spec_unschedulable == 1))) * 100)",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "groupingToMatrix",
+          "options": {
+            "columnField": "seg",
+            "rowField": "node",
+            "valueField": "Value",
+            "emptyValue": "null"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "node\\seg": "node"
+            }
+          }
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "xField": "node",
+        "stacking": "normal",
+        "showValue": "never",
+        "barWidth": 0.8,
+        "groupWidth": 0.7,
+        "fullHighlight": false,
+        "xTickLabelRotation": 0,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "max": 100,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 85,
+            "lineWidth": 1,
+            "gradientMode": "none",
+            "axisPlacement": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "other (small pods)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8e8e8e"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "barchart",
+      "id": 24,
+      "title": "CPU requests by workload, % of node",
+      "description": "One bar per node, as % of the node's allocatable CPU; the empty part of the bar is what's still free. Each segment is a workload (namespace/workload) holding at least 5% of that node; smaller ones are summed into 'other'. smelt-park/sandbox-<n> is all sandbox pods on that node together. Nodes that are down or cordoned have no allocatable and don't show. The tables below list every pod per node.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 9,
+        "w": 12,
+        "x": 12,
+        "y": 40
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "sort_desc(sum by (node, seg) (label_join((sum by (node, namespace, workload) (((sum by (namespace, pod, node) ((kube_pod_container_resource_requests{resource=\"cpu\", node=~\"$node\"} or ((kube_pod_init_container_resource_requests{resource=\"cpu\", node=~\"$node\"} * on(namespace, pod, container) group_left() max by (namespace, pod, container) (kube_pod_init_container_info{restart_policy=\"Always\"})) or (kube_pod_init_container_resource_requests{resource=\"cpu\", node=~\"$node\"} unless on(namespace, pod) kube_pod_init_container_info))) * on(namespace, pod) group_left() (max by (namespace, pod) (kube_pod_status_phase{phase=~\"Pending|Running\"}) == 1))) * on(namespace, pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel)) > on(node) group_left() (0.05 * sum by (node) (kube_node_status_allocatable{resource=\"cpu\", node=~\"$node\"} and on(node) (max by (node) (kube_node_status_condition{condition=\"Ready\", status=\"true\"}) == 1 unless on(node) (kube_node_spec_unschedulable == 1))))), \"seg\", \"/\", \"namespace\", \"workload\") or label_replace(sum by (node) (sum by (node, namespace, workload) (((sum by (namespace, pod, node) ((kube_pod_container_resource_requests{resource=\"cpu\", node=~\"$node\"} or ((kube_pod_init_container_resource_requests{resource=\"cpu\", node=~\"$node\"} * on(namespace, pod, container) group_left() max by (namespace, pod, container) (kube_pod_init_container_info{restart_policy=\"Always\"})) or (kube_pod_init_container_resource_requests{resource=\"cpu\", node=~\"$node\"} unless on(namespace, pod) kube_pod_init_container_info))) * on(namespace, pod) group_left() (max by (namespace, pod) (kube_pod_status_phase{phase=~\"Pending|Running\"}) == 1))) * on(namespace, pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel))) - (sum by (node) ((sum by (node, namespace, workload) (((sum by (namespace, pod, node) ((kube_pod_container_resource_requests{resource=\"cpu\", node=~\"$node\"} or ((kube_pod_init_container_resource_requests{resource=\"cpu\", node=~\"$node\"} * on(namespace, pod, container) group_left() max by (namespace, pod, container) (kube_pod_init_container_info{restart_policy=\"Always\"})) or (kube_pod_init_container_resource_requests{resource=\"cpu\", node=~\"$node\"} unless on(namespace, pod) kube_pod_init_container_info))) * on(namespace, pod) group_left() (max by (namespace, pod) (kube_pod_status_phase{phase=~\"Pending|Running\"}) == 1))) * on(namespace, pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel)) > on(node) group_left() (0.05 * sum by (node) (kube_node_status_allocatable{resource=\"cpu\", node=~\"$node\"} and on(node) (max by (node) (kube_node_status_condition{condition=\"Ready\", status=\"true\"}) == 1 unless on(node) (kube_node_spec_unschedulable == 1)))))) or sum by (node) (sum by (node, namespace, workload) (((sum by (namespace, pod, node) ((kube_pod_container_resource_requests{resource=\"cpu\", node=~\"$node\"} or ((kube_pod_init_container_resource_requests{resource=\"cpu\", node=~\"$node\"} * on(namespace, pod, container) group_left() max by (namespace, pod, container) (kube_pod_init_container_info{restart_policy=\"Always\"})) or (kube_pod_init_container_resource_requests{resource=\"cpu\", node=~\"$node\"} unless on(namespace, pod) kube_pod_init_container_info))) * on(namespace, pod) group_left() (max by (namespace, pod) (kube_pod_status_phase{phase=~\"Pending|Running\"}) == 1))) * on(namespace, pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel))) * 0), \"seg\", \"other (small pods)\", \"\", \"\")) / on(node) group_left() sum by (node) (kube_node_status_allocatable{resource=\"cpu\", node=~\"$node\"} and on(node) (max by (node) (kube_node_status_condition{condition=\"Ready\", status=\"true\"}) == 1 unless on(node) (kube_node_spec_unschedulable == 1))) * 100)",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "groupingToMatrix",
+          "options": {
+            "columnField": "seg",
+            "rowField": "node",
+            "valueField": "Value",
+            "emptyValue": "null"
+          }
+        },
+        {
+          "id": "organize",
+          "options": {
+            "renameByName": {
+              "node\\seg": "node"
+            }
+          }
+        }
+      ],
+      "options": {
+        "orientation": "horizontal",
+        "xField": "node",
+        "stacking": "normal",
+        "showValue": "never",
+        "barWidth": 0.8,
+        "groupWidth": 0.7,
+        "fullHighlight": false,
+        "xTickLabelRotation": 0,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "max": 100,
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "fillOpacity": 85,
+            "lineWidth": 1,
+            "gradientMode": "none",
+            "axisPlacement": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "other (small pods)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "#8e8e8e"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "row",
+      "id": 26,
+      "title": "Node: $node",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 49
+      },
+      "panels": [],
+      "repeat": "node",
+      "repeatDirection": "h"
+    },
+    {
+      "type": "table",
+      "id": 25,
+      "title": "Pods on $node",
+      "description": "Every running or pending pod on this node, biggest memory request first. '% node' is the pod's request as a share of the node's allocatable (what the scheduler packs against). The footer sums are what `kubectl describe node` calls 'Allocated resources'. A pod with no request takes no room as far as the scheduler is concerned, however much it actually uses.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "${DS_PROMETHEUS}"
+      },
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 50
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "max by (namespace, workload, pod) (((sum by (namespace, pod, node) ((kube_pod_container_resource_requests{resource=\"memory\", node=~\"$node\"} or ((kube_pod_init_container_resource_requests{resource=\"memory\", node=~\"$node\"} * on(namespace, pod, container) group_left() max by (namespace, pod, container) (kube_pod_init_container_info{restart_policy=\"Always\"})) or (kube_pod_init_container_resource_requests{resource=\"memory\", node=~\"$node\"} unless on(namespace, pod) kube_pod_init_container_info))) * on(namespace, pod) group_left() (max by (namespace, pod) (kube_pod_status_phase{phase=~\"Pending|Running\"}) == 1))) * on(namespace, pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel))",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "max by (namespace, workload, pod) (((sum by (namespace, pod, node) ((kube_pod_container_resource_requests{resource=\"memory\", node=~\"$node\"} or ((kube_pod_init_container_resource_requests{resource=\"memory\", node=~\"$node\"} * on(namespace, pod, container) group_left() max by (namespace, pod, container) (kube_pod_init_container_info{restart_policy=\"Always\"})) or (kube_pod_init_container_resource_requests{resource=\"memory\", node=~\"$node\"} unless on(namespace, pod) kube_pod_init_container_info))) * on(namespace, pod) group_left() (max by (namespace, pod) (kube_pod_status_phase{phase=~\"Pending|Running\"}) == 1)) / on(node) group_left() sum by (node) (kube_node_status_allocatable{resource=\"memory\", node=~\"$node\"} and on(node) (max by (node) (kube_node_status_condition{condition=\"Ready\", status=\"true\"}) == 1 unless on(node) (kube_node_spec_unschedulable == 1))) * 100) * on(namespace, pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel))",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "C",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "max by (namespace, workload, pod) (((sum by (namespace, pod) (container_memory_working_set_bytes{container!=\"\", container!=\"POD\", instance=~\"$node\"}) * on(namespace, pod) group_left() max by (namespace, pod) (kube_pod_info{node=~\"$node\"})) * on(namespace, pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel))",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "D",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "max by (namespace, workload, pod) (((sum by (namespace, pod, node) ((kube_pod_container_resource_limits{resource=\"memory\", node=~\"$node\"} or ((kube_pod_init_container_resource_limits{resource=\"memory\", node=~\"$node\"} * on(namespace, pod, container) group_left() max by (namespace, pod, container) (kube_pod_init_container_info{restart_policy=\"Always\"})) or (kube_pod_init_container_resource_limits{resource=\"memory\", node=~\"$node\"} unless on(namespace, pod) kube_pod_init_container_info))) * on(namespace, pod) group_left() (max by (namespace, pod) (kube_pod_status_phase{phase=~\"Pending|Running\"}) == 1))) * on(namespace, pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel))",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "E",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "max by (namespace, workload, pod) (((sum by (namespace, pod, node) ((kube_pod_container_resource_requests{resource=\"cpu\", node=~\"$node\"} or ((kube_pod_init_container_resource_requests{resource=\"cpu\", node=~\"$node\"} * on(namespace, pod, container) group_left() max by (namespace, pod, container) (kube_pod_init_container_info{restart_policy=\"Always\"})) or (kube_pod_init_container_resource_requests{resource=\"cpu\", node=~\"$node\"} unless on(namespace, pod) kube_pod_init_container_info))) * on(namespace, pod) group_left() (max by (namespace, pod) (kube_pod_status_phase{phase=~\"Pending|Running\"}) == 1))) * on(namespace, pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel))",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "F",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "max by (namespace, workload, pod) (((sum by (namespace, pod, node) ((kube_pod_container_resource_requests{resource=\"cpu\", node=~\"$node\"} or ((kube_pod_init_container_resource_requests{resource=\"cpu\", node=~\"$node\"} * on(namespace, pod, container) group_left() max by (namespace, pod, container) (kube_pod_init_container_info{restart_policy=\"Always\"})) or (kube_pod_init_container_resource_requests{resource=\"cpu\", node=~\"$node\"} unless on(namespace, pod) kube_pod_init_container_info))) * on(namespace, pod) group_left() (max by (namespace, pod) (kube_pod_status_phase{phase=~\"Pending|Running\"}) == 1)) / on(node) group_left() sum by (node) (kube_node_status_allocatable{resource=\"cpu\", node=~\"$node\"} and on(node) (max by (node) (kube_node_status_condition{condition=\"Ready\", status=\"true\"}) == 1 unless on(node) (kube_node_spec_unschedulable == 1))) * 100) * on(namespace, pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel))",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        },
+        {
+          "refId": "G",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "${DS_PROMETHEUS}"
+          },
+          "expr": "max by (namespace, workload, pod) (((sum by (namespace, pod) (rate(container_cpu_usage_seconds_total{container!=\"\", container!=\"POD\", instance=~\"$node\"}[5m])) * on(namespace, pod) group_left() max by (namespace, pod) (kube_pod_info{node=~\"$node\"})) * on(namespace, pod) group_left(workload, workload_type) namespace_workload_pod:kube_pod_owner:relabel))",
+          "legendFormat": "",
+          "range": false,
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "Value #A": "Mem req",
+              "Value #B": "Mem % node",
+              "Value #C": "Mem used",
+              "Value #D": "Mem limit",
+              "Value #E": "CPU req",
+              "Value #F": "CPU % node",
+              "Value #G": "CPU used"
+            },
+            "indexByName": {
+              "namespace": 0,
+              "workload": 1,
+              "pod": 2,
+              "Value #A": 3,
+              "Value #B": 4,
+              "Value #C": 5,
+              "Value #D": 6,
+              "Value #E": 7,
+              "Value #F": 8,
+              "Value #G": 9
+            }
+          }
+        },
+        {
+          "id": "sortBy",
+          "options": {
+            "sort": [
+              {
+                "field": "Mem req",
+                "desc": true
+              }
+            ]
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "footer": {
+          "show": true,
+          "reducer": [
+            "sum"
+          ],
+          "countRows": false,
+          "fields": [
+            "Mem req",
+            "Mem % node",
+            "CPU req",
+            "CPU % node"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "filterable": true,
+            "align": "auto"
+          },
+          "noValue": ""
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Mem req"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Mem % node"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Mem used"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Mem limit"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bytes"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU req"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU % node"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "percent"
+              },
+              {
+                "id": "decimals",
+                "value": 1
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU used"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "namespace"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Drill into namespace ${__value.raw}",
+                    "url": "/d/resource-reservations/resource-reservations?${__url_time_range}&${node:queryparam}&var-namespace=${__value.raw}&var-workload=$__all"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "workload"
+            },
+            "properties": [
+              {
+                "id": "links",
+                "value": [
+                  {
+                    "title": "Drill into workload ${__value.raw}",
+                    "url": "/d/resource-reservations/resource-reservations?${__url_time_range}&${node:queryparam}&var-namespace=${__data.fields.namespace}&var-workload=${__value.raw}"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Mem % node"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 75
+                    },
+                    {
+                      "color": "red",
+                      "value": 90
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CPU % node"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "gauge",
+                  "mode": "basic",
+                  "valueDisplayMode": "text"
+                }
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 100
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": 75
+                    },
+                    {
+                      "color": "red",
+                      "value": 90
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "color",
+                "value": {
+                  "mode": "thresholds"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "type": "row",
+      "id": 27,
+      "title": "4 \u00b7 Which namespace is holding it? (click a namespace to drill in)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 60
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "id": 28,
       "title": "Reclaimable memory (request \u2212 peak 1d)",
       "description": "Pods in the selected namespaces: memory request minus the pod's peak working set over the last day (floored at 0). Upper bound on what right-sizing requests could free.",
       "datasource": {
@@ -1657,7 +2299,7 @@
         "h": 4,
         "w": 12,
         "x": 0,
-        "y": 40
+        "y": 61
       },
       "targets": [
         {
@@ -1707,7 +2349,7 @@
     },
     {
       "type": "stat",
-      "id": 24,
+      "id": 29,
       "title": "Reclaimable CPU (request \u2212 peak 1d)",
       "description": "Pods in the selected namespaces, in cores: CPU request minus the pod's peak 5m-avg CPU over the last day (floored at 0).",
       "datasource": {
@@ -1718,7 +2360,7 @@
         "h": 4,
         "w": 12,
         "x": 12,
-        "y": 40
+        "y": 61
       },
       "targets": [
         {
@@ -1769,7 +2411,7 @@
     },
     {
       "type": "table",
-      "id": 25,
+      "id": 30,
       "title": "Namespaces",
       "description": "Per namespace, over running and pending pods on the selected nodes. '% cluster' is of the allocatable of nodes that are up. Many pods with a small 'Biggest pod' = lots of small things; few pods with a big 'Biggest pod' = one heavy hitter. 'used' is now (CPU 5m avg); 'peak 1d' is the namespace total's max over the last day.",
       "datasource": {
@@ -1780,7 +2422,7 @@
         "h": 11,
         "w": 24,
         "x": 0,
-        "y": 44
+        "y": 65
       },
       "targets": [
         {
@@ -2233,7 +2875,7 @@
     },
     {
       "type": "timeseries",
-      "id": 26,
+      "id": 31,
       "title": "Memory requested by namespace",
       "description": "Stacked: when did each namespace's reservation grow?",
       "datasource": {
@@ -2244,7 +2886,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 55
+        "y": 76
       },
       "targets": [
         {
@@ -2299,7 +2941,7 @@
     },
     {
       "type": "timeseries",
-      "id": 27,
+      "id": 32,
       "title": "Memory used by namespace",
       "description": "",
       "datasource": {
@@ -2310,7 +2952,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 55
+        "y": 76
       },
       "targets": [
         {
@@ -2365,7 +3007,7 @@
     },
     {
       "type": "timeseries",
-      "id": 28,
+      "id": 33,
       "title": "CPU requested by namespace (cores)",
       "description": "",
       "datasource": {
@@ -2376,7 +3018,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 64
+        "y": 85
       },
       "targets": [
         {
@@ -2432,7 +3074,7 @@
     },
     {
       "type": "timeseries",
-      "id": 29,
+      "id": 34,
       "title": "CPU used by namespace (cores)",
       "description": "",
       "datasource": {
@@ -2443,7 +3085,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 64
+        "y": 85
       },
       "targets": [
         {
@@ -2499,20 +3141,20 @@
     },
     {
       "type": "row",
-      "id": 30,
-      "title": "4 \u00b7 Within it: which workloads \u2014 many pods, or a few big ones? (click a workload to drill in)",
+      "id": 35,
+      "title": "5 \u00b7 Within it: which workloads \u2014 many pods, or a few big ones? (click a workload to drill in)",
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 73
+        "y": 94
       },
       "panels": []
     },
     {
       "type": "table",
-      "id": 31,
+      "id": 36,
       "title": "Workloads",
       "description": "Pods grouped by what owns them: Deployment, StatefulSet, DaemonSet, ARC runner set, or (for bare pods) a numbered family like sandbox-<n>. 'Pods' \u00d7 'Mem / pod' \u2248 'Mem req': a high count means lots of small pods, a high per-pod value means a few big ones.",
       "datasource": {
@@ -2523,7 +3165,7 @@
         "h": 12,
         "w": 24,
         "x": 0,
-        "y": 74
+        "y": 95
       },
       "targets": [
         {
@@ -2929,7 +3571,7 @@
     },
     {
       "type": "timeseries",
-      "id": 32,
+      "id": 37,
       "title": "Memory requested by workload",
       "description": "",
       "datasource": {
@@ -2940,7 +3582,7 @@
         "h": 9,
         "w": 12,
         "x": 0,
-        "y": 86
+        "y": 107
       },
       "targets": [
         {
@@ -2995,7 +3637,7 @@
     },
     {
       "type": "timeseries",
-      "id": 33,
+      "id": 38,
       "title": "Pods by workload",
       "description": "Running + pending pods. A climbing line = a workload scaling out (or leaking pods).",
       "datasource": {
@@ -3006,7 +3648,7 @@
         "h": 9,
         "w": 12,
         "x": 12,
-        "y": 86
+        "y": 107
       },
       "targets": [
         {
@@ -3062,20 +3704,20 @@
     },
     {
       "type": "row",
-      "id": 34,
-      "title": "5 \u00b7 Pods",
+      "id": 39,
+      "title": "6 \u00b7 Pods",
       "collapsed": false,
       "gridPos": {
         "h": 1,
         "w": 24,
         "x": 0,
-        "y": 95
+        "y": 116
       },
       "panels": []
     },
     {
       "type": "table",
-      "id": 35,
+      "id": 40,
       "title": "Pods",
       "description": "Running + pending pods in the selected namespaces/workloads/nodes. 'used' is now (CPU 5m avg); 'peak 1d' is the max over the last day. A request far above the peak is reservation you could hand back; a blank request is invisible to the scheduler.",
       "datasource": {
@@ -3086,7 +3728,7 @@
         "h": 14,
         "w": 24,
         "x": 0,
-        "y": 96
+        "y": 117
       },
       "targets": [
         {
@@ -3381,7 +4023,7 @@
     },
     {
       "type": "timeseries",
-      "id": 36,
+      "id": 41,
       "title": "Memory per pod: used (solid) vs requested (dashed)",
       "description": "",
       "datasource": {
@@ -3392,7 +4034,7 @@
         "h": 10,
         "w": 12,
         "x": 0,
-        "y": 110
+        "y": 131
       },
       "targets": [
         {
@@ -3487,7 +4129,7 @@
     },
     {
       "type": "timeseries",
-      "id": 37,
+      "id": 42,
       "title": "CPU per pod: used (solid) vs requested (dashed), cores",
       "description": "",
       "datasource": {
@@ -3498,7 +4140,7 @@
         "h": 10,
         "w": 12,
         "x": 12,
-        "y": 110
+        "y": 131
       },
       "targets": [
         {

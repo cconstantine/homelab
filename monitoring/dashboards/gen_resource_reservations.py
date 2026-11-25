@@ -7,9 +7,11 @@
 # Laid out as a top-down drill-down for "pods won't schedule":
 #   1. Is anything stuck, and is there a node with room for it?
 #   2. Which nodes are full?
-#   3. Which namespace is holding the reservations?   (click -> filter)
-#   4. Within it, which workloads -- many pods, or a few big ones? (click -> filter)
-#   5. The individual pods.
+#   3. Who is holding each node? (stacked bars by workload, then a table of
+#      the pods on each node -- one row per node)
+#   4. Which namespace is holding the reservations?   (click -> filter)
+#   5. Within it, which workloads -- many pods, or a few big ones? (click -> filter)
+#   6. The individual pods.
 # Sources: kube-state-metrics (requests, limits, allocatable, pod state), cAdvisor
 # (usage), and the namespace_workload_pod:kube_pod_owner:relabel recording rule
 # (pod -> workload, monitoring/config/rules.yml).
@@ -348,8 +350,107 @@ collapsed = [
 ]
 panels.append(row("Nodes: reserved vs actually used", y, collapsed=True, children=collapsed)); y += 1
 
-# ---- 3. Namespaces
-panels.append(row("3 · Which namespace is holding it? (click a namespace to drill in)", y)); y += 1
+# ---- 3. Who holds each node
+panels.append(row("3 · Who's holding each node? (whole nodes; ignores the namespace/workload filters)", y)); y += 1
+
+# Share of a node a workload must hold to get its own segment in the bars;
+# the rest are lumped into "other". Keeps the legend to the big holders.
+SEG_MIN = 0.05
+
+
+def node_wl_pct(resource):
+    """% of each node's allocatable requested, by namespace/workload segment.
+
+    Instant query, one row per (node, seg). Workloads under SEG_MIN of the node
+    are summed into seg="other (small pods)".
+    """
+    w = f'sum by (node, namespace, workload) ({by_wl(req(resource, "namespace, pod, node"), WL_ALL)})'
+    a = alloc(resource)
+    big = f'({w} > on(node) group_left() ({SEG_MIN} * {a}))'
+    named = f'label_join({big}, "seg", "/", "namespace", "workload")'
+    other = (f'label_replace(sum by (node) ({w}) - (sum by (node) ({big}) or sum by (node) ({w}) * 0), '
+             f'"seg", "other (small pods)", "", "")')
+    return f'sort_desc(sum by (node, seg) ({named} or {other}) / on(node) group_left() {a} * 100)'
+
+
+def node_bars(title, resource, gp, desc):
+    return {
+        "type": "barchart", "id": nid(), "title": title, "description": desc, "datasource": DS, "gridPos": gp,
+        "targets": [target(node_wl_pct(resource), instant=True, fmt="table")],
+        "transformations": [
+            {"id": "groupingToMatrix",
+             "options": {"columnField": "seg", "rowField": "node", "valueField": "Value", "emptyValue": "null"}},
+            {"id": "organize", "options": {"renameByName": {"node\\seg": "node"}}},
+        ],
+        "options": {"orientation": "horizontal", "xField": "node", "stacking": "normal", "showValue": "never",
+                    "barWidth": 0.8, "groupWidth": 0.7, "fullHighlight": False, "xTickLabelRotation": 0,
+                    "legend": {"displayMode": "list", "placement": "bottom", "showLegend": True},
+                    "tooltip": {"mode": "multi", "sort": "desc"}},
+        "fieldConfig": {"defaults": {"unit": "percent", "decimals": 1, "min": 0, "max": 100,
+                                     "color": {"mode": "palette-classic"},
+                                     "custom": {"fillOpacity": 85, "lineWidth": 1, "gradientMode": "none",
+                                                "axisPlacement": "auto"}},
+                        "overrides": [{"matcher": {"id": "byName", "options": "other (small pods)"},
+                                       "properties": [{"id": "color",
+                                                       "value": {"mode": "fixed", "fixedColor": "#8e8e8e"}}]}]},
+    }
+
+
+BAR_DESC = ("One bar per node, as % of the node's allocatable {r}; the empty part of the bar is what's still free. "
+            "Each segment is a workload (namespace/workload) holding at least 5% of that node; smaller ones are summed "
+            "into 'other'. smelt-park/sandbox-<n> is all sandbox pods on that node together. Nodes that are down or "
+            "cordoned have no allocatable and don't show. The tables below list every pod per node.")
+panels.append(node_bars("Memory requests by workload, % of node", "memory",
+                        {"h": 9, "w": 12, "x": 0, "y": y}, BAR_DESC.format(r="memory")))
+panels.append(node_bars("CPU requests by workload, % of node", "cpu",
+                        {"h": 9, "w": 12, "x": 12, "y": y}, BAR_DESC.format(r="CPU")))
+y += 9
+
+
+def node_pod_col(e):
+    """Per-pod column for the per-node tables: keyed (namespace, workload, pod), no namespace filter."""
+    return f'max by (namespace, workload, pod) ({by_wl(e, WL_ALL)})'
+
+
+def pct_col(resource):
+    return node_pod_col(f'{req(resource, "namespace, pod, node")} / on(node) group_left() {alloc(resource)} * 100')
+
+
+def gauge_override(field):
+    return {"matcher": {"id": "byName", "options": field},
+            "properties": [{"id": "custom.cellOptions",
+                            "value": {"type": "gauge", "mode": "basic", "valueDisplayMode": "text"}},
+                           {"id": "min", "value": 0}, {"id": "max", "value": 100},
+                           {"id": "thresholds", "value": PCT_THR}, {"id": "color", "value": {"mode": "thresholds"}}]}
+
+
+POD_ON_NODE = f'on(namespace, pod) group_left() max by (namespace, pod) (kube_pod_info{{{NODE_SEL}}})'
+pernode = table(
+    "Pods on $node",
+    "Every running or pending pod on this node, biggest memory request first. '% node' is the pod's request as a share "
+    "of the node's allocatable (what the scheduler packs against). The footer sums are what `kubectl describe node` "
+    "calls 'Allocated resources'. A pod with no request takes no room as far as the scheduler is concerned, "
+    "however much it actually uses.",
+    {"h": 10, "w": 24, "x": 0, "y": y + 1}, ["namespace", "workload", "pod"],
+    [("Mem req", node_pod_col(req("memory", "namespace, pod, node")), BYTES),
+     ("Mem % node", pct_col("memory"), PCT),
+     ("Mem used", node_pod_col(f'{usage("mem")} * {POD_ON_NODE}'), BYTES),
+     ("Mem limit", node_pod_col(req("memory", "namespace, pod, node", "limits")), BYTES),
+     ("CPU req", node_pod_col(req("cpu", "namespace, pod, node")), CORES),
+     ("CPU % node", pct_col("cpu"), PCT),
+     ("CPU used", node_pod_col(f'{usage("cpu")} * {POD_ON_NODE}'), CORES)],
+    sort_by="Mem req", links=[NS_LINK, WL_LINK],
+    footer_sum=["Mem req", "Mem % node", "CPU req", "CPU % node"])
+pernode["fieldConfig"]["overrides"] += [gauge_override("Mem % node"), gauge_override("CPU % node")]
+# One row per selected node (all of them by default), each holding its own table.
+noderow = row("Node: $node", y)
+noderow["repeat"] = "node"
+noderow["repeatDirection"] = "h"
+panels.append(noderow); y += 1
+panels.append(pernode); y += 10
+
+# ---- 4. Namespaces
+panels.append(row("4 · Which namespace is holding it? (click a namespace to drill in)", y)); y += 1
 NS = "namespace"
 panels.append(stat("Reclaimable memory (request − peak 1d)",
                    [target(f'sum(clamp_min({req("memory", "namespace, pod", ns=True)} - on(namespace, pod) {peak(usage("mem", ns=True))}, 0))')],
@@ -393,8 +494,8 @@ panels.append(ts("CPU used by namespace (cores)", [target(usage("cpu", NS, ns=Tr
                  {"h": 9, "w": 12, "x": 12, "y": y}, "none", stack=True, decimals=2))
 y += 9
 
-# ---- 4. Workloads
-panels.append(row("4 · Within it: which workloads — many pods, or a few big ones? (click a workload to drill in)", y)); y += 1
+# ---- 5. Workloads
+panels.append(row("5 · Within it: which workloads — many pods, or a few big ones? (click a workload to drill in)", y)); y += 1
 WLK = "namespace, workload, workload_type"
 
 
@@ -427,8 +528,8 @@ panels.append(ts("Pods by workload", [target(f'count by ({WLK}) ({by_wl(ACTIVE_P
                  desc="Running + pending pods. A climbing line = a workload scaling out (or leaking pods)."))
 y += 9
 
-# ---- 5. Pods
-panels.append(row("5 · Pods", y)); y += 1
+# ---- 6. Pods
+panels.append(row("6 · Pods", y)); y += 1
 POD_KEYS = "namespace, workload, workload_type, pod, node"
 
 
