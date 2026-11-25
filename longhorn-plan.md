@@ -46,7 +46,7 @@ nearly full, so Longhorn's footprint there is kept to the minimum.
 | `ryzen` | 10G | NVMe root disk | 1121 of 1963 GB | No | Replicas, memory-limited |
 | `cachyos-x8664` | 1G | NVMe root disk | 1225 of 1963 GB | No | Replicas |
 | `system76` | 1G | NVMe root disk | 389 of 979 GB | No | Client only for now |
-| `xavier-vm` | ? | 16 GB root, 421 GB `/var/lib/rancher` | 394 GB | Unchecked | Excluded |
+| `xavier-vm` | 2.5G (own bridged NIC) | raw NVMe partition, `/var/lib/rancher` | 607 of 649 GB | Yes, 2.1.9 | Replicas (added 2026-11-25) |
 
 All nodes run Kubernetes 1.34.6, which meets Longhorn 1.13's minimum of 1.34.
 The three CachyOS nodes all have the `iscsi_tcp` module available, and their
@@ -67,8 +67,17 @@ Node notes:
   11 GB available.
 - `xavier-vm`: replaced `xavier`. It's an arm64 Firecracker VM for arm runners
   and sandboxes, with slow cores and a soft
-  `homelab/vm=firecracker:PreferNoSchedule` taint. That taint is only a
-  preference, so keeping Longhorn off it needs the node selector below.
+  `homelab/vm=firecracker:PreferNoSchedule` taint. Since 2026-11-25 it is a
+  replica node (capped at 200 GiB) but not a `longhorn-control` node, so
+  Longhorn's Deployments stay off its slow cores. Its guest kernel needed
+  `BLK_DEV_SD` (iSCSI volumes are SCSI disks) and `BLK_DEV_WRITE_MOUNTED`
+  (Firecracker's CI config turns it off, which makes the CSI plugin's
+  `resize2fs` fail with EBUSY on every mount); also added `CHR_DEV_SG`,
+  `DM_CRYPT` and `NFS_V3`. The guest needed `open-iscsi` and `dmsetup`, and
+  the disk directory `/var/lib/rancher/longhorn` has to exist before Longhorn
+  will create the disk. A 2 Gi test volume attached there did 72 MB/s
+  sequential and about 3k IOPS 4k random writes (cachyos-x8664: 49 MB/s and
+  1.2k IOPS).
 
 ### Workloads
 

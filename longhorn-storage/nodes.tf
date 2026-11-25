@@ -22,6 +22,16 @@ locals {
       size_bytes = 1963617406976
       cap_bytes  = 200 * 1024 * 1024 * 1024
     }
+    # Firecracker VM on the Xavier: its own raw NVMe partition (vdb, the
+    # guest's /var/lib/rancher) and its own bridged NIC (2.5G for now). The
+    # 16G root disk is too small for /var/lib/longhorn. Its guest kernel needs
+    # BLK_DEV_SD for iSCSI volumes and BLK_DEV_WRITE_MOUNTED for the CSI
+    # plugin's resize2fs on mount (both added 2026-11-25).
+    xavier-vm = {
+      path       = "/var/lib/rancher/longhorn"
+      size_bytes = 649380630528
+      cap_bytes  = 200 * 1024 * 1024 * 1024
+    }
   }
 
   # These run Longhorn so pods there can attach volumes, but hold no replicas
@@ -33,8 +43,9 @@ locals {
   longhorn_nodes = toset(concat(keys(local.replica_disks), local.attach_only_nodes))
 
   # The Deployments that aren't tied to a node stay off ryzen (kept free for
-  # Strata) and framework (it leaves).
-  control_nodes = setsubtract(local.longhorn_nodes, ["ryzen", "framework"])
+  # Strata), framework (it leaves) and xavier-vm (slow arm cores, kept for the
+  # arm runners; see its taint in xavier-vm.tf).
+  control_nodes = setsubtract(local.longhorn_nodes, ["ryzen", "framework", "xavier-vm"])
 }
 
 # Each resource has its own server-side-apply field manager, so applying it
