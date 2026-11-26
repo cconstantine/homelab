@@ -23,7 +23,10 @@
 # 72GB of experts don't, so Strata would read part of them from the SSD.
 #
 # The served model name is Strata's own (GET /v1/models, e.g.
-# qwen3.8-flash-next-iq3_s); the name in a request is ignored. Clients need
+# qwen3.8-flash-next-iq3_s), and it changes with strata_model. Since 0.2.22 a
+# request naming any other model gets 404 model_not_found, so switching sizes
+# means repointing clients (smelt: its default model and each conversation's
+# model, provider 2 in smelt-db). Clients need
 # the API key:
 #   kubectl -n ai get secret strata-ryzen -o jsonpath='{.data.API_KEY}' | base64 -d
 # /metrics (vLLM-style names) needs the key too; Prometheus reads it from the
