@@ -1,0 +1,3 @@
+module "sccache" {
+  source = "./sccache"
+}
