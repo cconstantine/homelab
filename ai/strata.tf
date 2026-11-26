@@ -427,6 +427,15 @@ resource "kubernetes_deployment_v1" "strata_ryzen" {
             name  = "STRATA_MMQ_KQ"
             value = "0"
           }
+          # The hyper-connection projections stay bf16 instead of being
+          # quantized to Q8_0 at load ("decode faster, answers differ
+          # slightly"; no KL given). Measured 2026-11-26 on 0.2.22, 12 replies of
+          # 200+ tokens each: decode at 0-50K context 62.4 tok/s vs 63.0 with
+          # Q8 (within noise); the expert cache is 129 slots (1.7%) smaller.
+          env {
+            name  = "STRATA_HC_Q8"
+            value = "0"
+          }
           # One log line per finished request.
           env {
             name  = "STRATA_REQUEST_LINES"
