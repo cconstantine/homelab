@@ -90,13 +90,16 @@ resource "kubernetes_stateful_set" "registry" {
             value = "true"
           }
 
+          # smelt's CI and seats read and write a BuildKit cache here
+          # (cr.constantlee.us/smelt/buildcache:dev) on every dev-image
+          # build; at 96Mi it peaked at 86 MB and restarted once.
           resources {
             requests = {
               cpu    = "10m"
-              memory = "32Mi"
+              memory = "128Mi"
             }
             limits = {
-              memory = "96Mi"
+              memory = "512Mi"
             }
           }
 
