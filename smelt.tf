@@ -27,6 +27,11 @@ module "smelt" {
   # ClusterRole; see smelt-deployer/main.tf.
   storage_reader_enabled = true
 
+  # Memory request and limit for the server container. Raised from the module
+  # default 2Gi after one OOMKill at that limit under ordinary load (SME-764);
+  # PM-decided 2026-11-25 (SME-823).
+  server_memory = "3072Mi"
+
   # smelt.constantlee.us, a record of the globally-resolved domain every
   # *.constantlee.us name has TLS under. The module's default base URL —
   # `https://<domain>` — is therefore right here, unlike the `.homelab`
