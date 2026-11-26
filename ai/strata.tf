@@ -328,8 +328,10 @@ resource "kubernetes_deployment_v1" "strata_ryzen" {
         }
 
         container {
-          name  = "strata"
-          image = "ghcr.io/niko1221/strata:0.2.13-rocm-gfx120x"
+          name = "strata"
+          # Not 0.2.20 or 0.2.21: a request without sampling ran greedy with
+          # --mtp there (#7070, fixed in 0.2.22).
+          image = "ghcr.io/niko1221/strata:0.2.22-rocm-gfx120x"
 
           # Wraps the image's entrypoint (tini -> entrypoint.sh run) for what
           # its env vars can't set:
@@ -404,6 +406,22 @@ resource "kubernetes_deployment_v1" "strata_ryzen" {
           # conversations started writing the wrong tool's name.
           env {
             name  = "STRATA_ROUTE_TAIL_SKIP"
+            value = "0"
+          }
+          # Two gfx12 speed defaults that change the answers, off. Each costs about
+          # as much as UD-IQ4_XS -> UD-Q4_K_XL gained (mean KL vs Q8_0 0.101 ->
+          # 0.056). CPU share: the CPU takes part of every prompt chunk of 1,536
+          # tokens or less (first-token KL ~0.02), so nearly every agent turn,
+          # which appends 40-800 tokens; it saved a few hundred ms on those.
+          # MMQ_KQ: K-quant prompts on llama.cpp's MMQ kernels (KL ~0.03, +10-17%
+          # prompt speed); 0.2.14 moved prompts to Strata's own kernels, so this
+          # may be a no-op now -- the engine log's gfx12 lines say which are on.
+          env {
+            name  = "STRATA_PREFILL_CPU_SHARE"
+            value = "0"
+          }
+          env {
+            name  = "STRATA_MMQ_KQ"
             value = "0"
           }
           # One log line per finished request.
