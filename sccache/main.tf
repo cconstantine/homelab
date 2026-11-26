@@ -3,9 +3,11 @@
 #   SCCACHE_WEBDAV_ENDPOINT=http://sccache.sccache.svc.cluster.local:8080/
 # with RUSTC_WRAPPER=sccache; that part lives in smelt's CI, not here.
 #
-# Only the ARC runner pods can reach it (NetworkPolicy below): a cache anyone
-# can write to lets them plant build outputs that CI then links in, and
-# smelt-park's sandboxes share this cluster.
+# Open to every pod in the cluster (ClusterIP only, so not to the LAN), with
+# no auth. Anything that can reach it can also write to it, and a planted
+# entry is linked into whatever build hits that key -- smelt-park's sandboxes
+# included. It was limited to arc-runners at first; opened up 2026-11-25 so
+# builds elsewhere in the cluster can use it.
 #
 # One replica, Recreate: the volume is ReadWriteOnce, so only one node can
 # mount it, and a rolling update would leave the new pod waiting on the old.
@@ -194,33 +196,6 @@ resource "kubernetes_service" "sccache" {
       name        = "webdav"
       port        = local.port
       target_port = local.port
-    }
-  }
-}
-
-# k3s enforces NetworkPolicies. Builds run in containers inside the runner
-# pod's own dockerd, whose traffic leaves with the runner pod's IP, so this
-# admits them too.
-resource "kubernetes_network_policy" "sccache" {
-  metadata {
-    name      = local.name
-    namespace = kubernetes_namespace.sccache.metadata.0.name
-  }
-  spec {
-    pod_selector {
-      match_labels = local.labels
-    }
-    policy_types = ["Ingress"]
-    ingress {
-      from {
-        namespace_selector {
-          match_labels = { "kubernetes.io/metadata.name" = "arc-runners" }
-        }
-      }
-      ports {
-        port     = local.port
-        protocol = "TCP"
-      }
     }
   }
 }
