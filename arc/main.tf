@@ -52,35 +52,62 @@ locals {
     # browser runner and the other three each take a server and a browser
     # runner: with framework away, or a sandbox (18.25Gi) on cachyos-x8664,
     # the third server runner waits for room.
+    #
+    # smelt-arm64 builds publish-images.yml's arm64 legs natively (SME-747;
+    # under emulation a release Rust build is hours). xavier-vm is the only
+    # arm64 node, so one runner at a time: a publish's two arm legs take
+    # turns. Its cache is under /var/lib/rancher, the VM's NVMe (vdb; see
+    # longhorn-storage/nodes.tf): its 16G root disk can't hold it. Sized
+    # against xavier-vm's 6 CPU / 28.4GiB allocatable, beside the srvr arm
+    # runners and Longhorn already there (2026-11-26).
+    #
+    # Every entry spells out platform, nodes and max: the map's entries are
+    # unified to one object type, so a key left out arrives as null.
     { for name, r in {
       "smelt-amd64" = {
-        dir = "/var/lib/arc-runner-smelt"
+        platform = "amd64"
+        # framework is the laptop, which leaves the network: a job running
+        # there then just fails and can be re-run. Its first run there, and
+        # each after it's been away a while, starts with a cold cache.
+        nodes = ["homelab", "system76", "cachyos-x8664", "framework"]
+        max   = 3
+        dir   = "/var/lib/arc-runner-smelt"
         resources = {
           requests = { cpu = "5", memory = "12Gi" }
           limits   = { memory = "20Gi" }
         }
       }
       "smelt-amd64-browser" = {
-        dir = "/var/lib/arc-runner-smelt-browser"
+        platform = "amd64"
+        nodes    = ["homelab", "system76", "cachyos-x8664", "framework"]
+        max      = 3
+        dir      = "/var/lib/arc-runner-smelt-browser"
         resources = {
           requests = { cpu = "3", memory = "10Gi" }
+          limits   = { memory = "16Gi" }
+        }
+      }
+      "smelt-arm64" = {
+        platform = "arm64"
+        nodes    = ["xavier-vm"]
+        max      = 1
+        dir      = "/var/lib/rancher/arc-runner-smelt-arm64"
+        resources = {
+          requests = { cpu = "3", memory = "12Gi" }
           limits   = { memory = "16Gi" }
         }
       }
       } : name => {
       github_config_url    = "https://github.com/cconstantine/smelt"
       github_config_secret = "arc-github-pat-smelt"
-      platform             = "amd64"
-      # framework is the laptop, which leaves the network: a job running there
-      # then just fails and can be re-run. Its first run there, and each after
-      # it's been away a while, starts with a cold cache.
+      platform             = r.platform
       host_storage = {
-        nodes = ["homelab", "system76", "cachyos-x8664", "framework"]
+        nodes = r.nodes
         path  = r.dir
       }
       dind_resources = r.resources
       min_runners    = 0
-      max_runners    = 3
+      max_runners    = r.max
     } }
   )
 
@@ -274,8 +301,13 @@ resource "helm_release" "arc_runner_set" {
             }]
             # And, where there's room, not beside another host_storage set's
             # runner (smelt's server and browser jobs): each is several cores
-            # and ~10GiB of cargo, Postgres and k3s.
-            preferredDuringSchedulingIgnoredDuringExecution = [{
+            # and ~10GiB of cargo, Postgres and k3s. Only sets of its own
+            # platform: the others can't share its nodes anyway. None at all
+            # when it's the only one (smelt-arm64): an In with no values is
+            # refused.
+            preferredDuringSchedulingIgnoredDuringExecution = [for others in [
+              [for k, t in local.runner_targets : "arc-runner-${k}" if t.host_storage != null && k != each.key && t.platform == each.value.platform]
+              ] : {
               weight = 100
               podAffinityTerm = {
                 topologyKey = "kubernetes.io/hostname"
@@ -283,11 +315,11 @@ resource "helm_release" "arc_runner_set" {
                   matchExpressions = [{
                     key      = "actions.github.com/scale-set-name"
                     operator = "In"
-                    values   = [for k, t in local.runner_targets : "arc-runner-${k}" if t.host_storage != null && k != each.key]
+                    values   = others
                   }]
                 }
               }
-            }]
+            } if length(others) > 0]
           }
         }
         initContainers = concat(each.value.host_storage == null ? [] : [
