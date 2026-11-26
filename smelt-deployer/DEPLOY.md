@@ -35,6 +35,8 @@ It checks both images, that master is clean at its tip and that
 summarises. Then read `~/deploy-<SHA>/summary.txt` and **all of**
 `~/deploy-<SHA>/plan.txt`. Never print `plan.json`: it holds secrets in clear.
 Exit 3 means `smelt.tf` already names that SHA: nothing to deploy.
+A pending change to `smelt.tf` other than the three lines is §7's, not a
+prepare's.
 
 ## 4. Decide
 
@@ -90,6 +92,74 @@ the state lock`, and has no `Creating...`, `Modifying...` or `Destroying...`
 line. With no log (a lost pod) nothing proves the cluster is unchanged: never
 clear, report the commit.
 
+## 7. A smelt.tf change that is not the image lines
+
+Some changes to `smelt.tf` are not the three-line image edit — a module
+variable such as `server_memory`. §1–6 are keyed to a smelt SHA:
+`deploy-prepare.sh` exits 3 whenever `smelt.tf` already names it, so a
+variable change has this route instead. It is not "terraform by hand" in
+the Don't's sense: that forbids finishing a script's step by hand after
+the script failed; here no script has failed and none is being finished.
+The guards are the runbook's own: the same deployer ServiceAccount, the
+same pinned tools and mirror, only `smelt.tf`, only `-target=module.smelt`,
+the §5 stop list read against a saved plan, and one such run at a time on
+the same go as a deploy. No image is involved: no SHA to check, nothing on
+GHCR, and no `smelt <SHA>` commit.
+
+1. Setup as §2, then the refusals of §3 minus the image checks: on `master`,
+   `git status --porcelain` empty, `git pull --ff-only`, `HEAD` equal to
+   `origin/master`, `smelt-deployer/` unchanged since your brief's pin.
+2. Edit `smelt.tf` — that file alone, the three image lines untouched —
+   and commit it locally:
+
+       git commit -m "<what changes> (<ticket>)" -- smelt.tf
+
+   As in §5, the commit is the record of what the cluster runs; it is
+   pushed only after the apply is in.
+3. Plan without applying. `deploy-lib.sh` is sourced, never run: it puts
+   the pinned tools on PATH, the provider mirror, the placeholder root
+   `TF_VAR_*`, and the repo directory.
+
+       . smelt-deployer/deploy-lib.sh
+       D=~/tf-<ticket>; install -d -m 700 "$D"
+       terraform plan -target=module.smelt -input=false -no-color \
+         -out="$D/plan" >"$D/plan-run.txt" 2>&1
+       chmod 600 "$D/plan"
+       terraform show -no-color "$D/plan" > "$D/plan.txt"
+       (umask 077; terraform show -json "$D/plan" > "$D/plan.json")
+       python3 -I smelt-deployer/plan_summary.py "$D/plan.json" \
+         --sha <the 12-char SHA smelt.tf names>
+
+   Never print `plan.json`: it holds secrets in clear, as in §3. The ref
+   did not move, so there is nothing to re-init (§3's re-init is for that).
+4. Read all of `plan.txt`; decide as §4 and stop as §5. The plan may
+   change only what your `smelt.tf` diff explains, and only in place;
+   `KIND: wider` is this route's normal kind. The summary must be silent
+   on the ref and the two images: a `REF_MISMATCH` means an image line
+   moved — that is a deploy, §1–6, so stop. After a stop before the
+   apply, drop the local commit with `git reset --hard origin/master`
+   (`deploy-discard.sh` knows only `smelt <SHA>` commits; it refuses this
+   one and touches nothing).
+5. If the change rolls a pod — anything inside a pod template — say the
+   one line of §6 first: smelt restarts under you, and your pod survives
+   it. Then:
+
+       terraform apply -input=false -no-color "$D/plan" 2>&1 | tee "$D/apply.log"
+
+6. Verify what the change touched. `Apply complete!` in the log; for a
+   roll of `deploy/smelt`, `kubectl -n smelt-park rollout status
+   deploy/smelt --timeout=15m` clean and the live object reading the new
+   value; then `terraform plan -target=module.smelt -input=false
+   -detailed-exitcode` exiting 0 ("No changes"). The apply marker,
+   `--resume` and §6's recoveries belong to the scripted flow and do not
+   track this run. So if the apply failed or died: never re-apply the
+   saved plan — read the log and plan again, and let a fresh plan show
+   what is left; on anything you cannot read, report `commit <sha>` and
+   never discard an applied commit.
+7. Push as §6: `git push origin HEAD:master`, rebasing once if master
+   moved (a conflict: stop and report the commit), never forcing. Then
+   report the commit, what you verified, and the times of §6's checks.
+
 ## Don'ts
 
 - Only `smelt.tf`, only `-target=module.smelt`; no `destroy`, no
@@ -99,3 +169,5 @@ clear, report the commit.
 - Don't recreate your pod during a deploy.
 - Never print, log or commit the kubeconfig or its token.
 - Never run terraform by hand past a script's failure to "finish" a step.
+  A change §7 covers is not that: no script has failed, and §7 is a
+  documented route.
