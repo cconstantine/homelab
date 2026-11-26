@@ -45,9 +45,13 @@ locals {
     # every idle core.
     #
     # Runners exist only while jobs run (min 0), so the reservations are
-    # held only then; a job waits about a minute for its pod. Up to two per
-    # job, one per node of host_storage.nodes (podAntiAffinity below): two
-    # dockerds can't share a node's cache directory.
+    # held only then; a job waits about a minute for its pod. Up to three per
+    # job, so three PRs can build at once (2026-11-25; was two), one per node
+    # of host_storage.nodes (podAntiAffinity below): two dockerds can't share
+    # a node's cache directory. All six fit only while system76 takes a
+    # browser runner and the other three each take a server and a browser
+    # runner: with framework away, or a sandbox (18.25Gi) on cachyos-x8664,
+    # the third server runner waits for room.
     { for name, r in {
       "smelt-amd64" = {
         dir = "/var/lib/arc-runner-smelt"
@@ -76,7 +80,7 @@ locals {
       }
       dind_resources = r.resources
       min_runners    = 0
-      max_runners    = 2
+      max_runners    = 3
     } }
   )
 
@@ -422,7 +426,8 @@ resource "helm_release" "arc_runner_set_smelt_light" {
     githubConfigSecret = kubernetes_secret.arc_github_pat_smelt.metadata.0.name
     runnerScaleSetName = "arc-runner-smelt-amd64-light"
     minRunners         = 0
-    maxRunners         = 4
+    # Three PRs' worth of these at once, with room for publish jobs.
+    maxRunners = 6
     listenerTemplate = {
       spec = {
         tolerations = local.prefer_xavier_vm.tolerations
