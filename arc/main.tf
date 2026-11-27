@@ -11,7 +11,6 @@ locals {
       github_config_secret = "arc-github-pat"
       platform             = p
       host_storage         = null
-      ephemeral_docker     = null
       dind_resources       = null
       min_runners          = 1
       max_runners          = 1
@@ -59,76 +58,47 @@ locals {
     # runner: with framework away, or a sandbox (18.25Gi) on cachyos-x8664,
     # the third server runner waits for room.
     #
-    # smelt-arm64 builds publish-images.yml's arm64 legs natively (SME-747;
-    # under emulation a release Rust build is hours) on xavier-vm, the only
-    # arm64 node. It keeps no cache (dir = null): its jobs never reused one.
-    # setup-buildx-action makes a new BuildKit builder per job and removes it
-    # at the end, and the release stage COPYs the source before compiling, so
-    # every publish compiles cold either way; what survived between jobs was
-    # the 357MB moby/buildkit image. Instead each runner's Docker storage is
-    # a volume of its own (ephemeral_docker GiB; local-path, under
-    # /var/lib/rancher/k3s/storage on the VM's NVMe, vdb -- its 16G root
-    # disk, where an emptyDir lands, can't hold a build), made with the pod
-    # and deleted with it. With nothing shared on the node, two runners fit
-    # there, so a publish's server and sandbox arm legs build at once instead
-    # of taking turns. Sized so two fit xavier-vm's 6 CPU / 28.4GiB
-    # allocatable beside the srvr arm runners, the ARC listeners and Longhorn
-    # (1.57 CPU / ~3.1GiB requested without them, 2026-11-26): 2 x (1.75 +
-    # 0.25 runner) CPU, and limits of 2 x (13 + 2)GiB. A build's BuildKit
-    # held 2.8GiB compiling the last crate; the peak isn't measured yet.
+    # smelt has no arm64 runners: since SME-879 (2026-11-27) publish-images
+    # cross-compiles its arm64 legs on these amd64 sets. The native
+    # arc-runner-smelt-arm64 set on xavier-vm (SME-747) went with it.
     #
-    # Every entry spells out platform, nodes, max, dir and ephemeral: the
-    # map's entries are unified to one object type, so a key left out arrives
-    # as null.
+    # Every entry spells out platform, nodes, max and dir: the map's entries
+    # are unified to one object type, so a key left out arrives as null.
     { for name, r in {
       "smelt-amd64" = {
         platform = "amd64"
         # framework is the laptop, which leaves the network: a job running
         # there then just fails and can be re-run. Its first run there, and
         # each after it's been away a while, starts with a cold cache.
-        nodes     = ["homelab", "system76", "cachyos-x8664", "framework"]
-        max       = 3
-        dir       = "/var/lib/arc-runner-smelt"
-        ephemeral = null
+        nodes = ["homelab", "system76", "cachyos-x8664", "framework"]
+        max   = 3
+        dir   = "/var/lib/arc-runner-smelt"
         resources = {
           requests = { cpu = "5", memory = "12Gi" }
           limits   = { memory = "20Gi" }
         }
       }
       "smelt-amd64-browser" = {
-        platform  = "amd64"
-        nodes     = ["homelab", "system76", "cachyos-x8664", "framework"]
-        max       = 3
-        dir       = "/var/lib/arc-runner-smelt-browser"
-        ephemeral = null
+        platform = "amd64"
+        nodes    = ["homelab", "system76", "cachyos-x8664", "framework"]
+        max      = 3
+        dir      = "/var/lib/arc-runner-smelt-browser"
         resources = {
           requests = { cpu = "3", memory = "10Gi" }
           limits   = { memory = "16Gi" }
-        }
-      }
-      "smelt-arm64" = {
-        platform  = "arm64"
-        nodes     = ["xavier-vm"]
-        max       = 2
-        dir       = null
-        ephemeral = 100
-        resources = {
-          requests = { cpu = "1.75", memory = "9Gi" }
-          limits   = { memory = "13Gi" }
         }
       }
       } : name => {
       github_config_url    = "https://github.com/cconstantine/smelt"
       github_config_secret = "arc-github-pat-smelt"
       platform             = r.platform
-      host_storage = r.dir == null ? null : {
+      host_storage = {
         nodes = r.nodes
         path  = r.dir
       }
-      ephemeral_docker = r.ephemeral
-      dind_resources   = r.resources
-      min_runners      = 0
-      max_runners      = r.max
+      dind_resources = r.resources
+      min_runners    = 0
+      max_runners    = r.max
     } }
   )
 
@@ -237,7 +207,7 @@ resource "helm_release" "arc_controller" {
 }
 
 resource "kubernetes_persistent_volume_claim" "arc_docker_data" {
-  for_each         = { for k, v in local.runner_targets : k => v if v.host_storage == null && v.ephemeral_docker == null }
+  for_each         = { for k, v in local.runner_targets : k => v if v.host_storage == null }
   wait_until_bound = false
   metadata {
     name      = "arc-docker-data-${each.key}"
@@ -324,8 +294,7 @@ resource "helm_release" "arc_runner_set" {
             # runner (smelt's server and browser jobs): each is several cores
             # and ~10GiB of cargo, Postgres and k3s. Only sets of its own
             # platform: the others can't share its nodes anyway. None at all
-            # when it's the only one (smelt-arm64): an In with no values is
-            # refused.
+            # when it's the only one: an In with no values is refused.
             preferredDuringSchedulingIgnoredDuringExecution = [for others in [
               [for k, t in local.runner_targets : "arc-runner-${k}" if t.host_storage != null && k != each.key && t.platform == each.value.platform]
               ] : {
@@ -437,19 +406,7 @@ resource "helm_release" "arc_runner_set" {
           { name = "dind-externals", emptyDir = {} },
           { name = "work", emptyDir = {} },
           ],
-          each.value.ephemeral_docker == null ? [] : [{
-            name = "dind-docker"
-            ephemeral = {
-              volumeClaimTemplate = {
-                spec = {
-                  accessModes      = ["ReadWriteOnce"]
-                  storageClassName = "local-path"
-                  resources        = { requests = { storage = "${each.value.ephemeral_docker}Gi" } }
-                }
-              }
-            }
-          }],
-          each.value.host_storage == null && each.value.ephemeral_docker == null ? [{
+          each.value.host_storage == null ? [{
             name = "dind-docker"
             persistentVolumeClaim = {
               claimName = kubernetes_persistent_volume_claim.arc_docker_data[each.key].metadata.0.name
