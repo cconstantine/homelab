@@ -13,6 +13,9 @@ resource "github_repository" "smelt" {
   allow_squash_merge = true
   allow_rebase_merge = true
 
+  # A PR's head branch is deleted once it merges.
+  delete_branch_on_merge = true
+
   lifecycle {
     prevent_destroy = true
   }
