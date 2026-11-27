@@ -117,10 +117,14 @@ locals {
         "--ple-io" = "mmap"
         # Setup would keep every expert in RAM (93 GiB clears 71.7 + 16),
         # a 71.7GiB pinned arena that leaves ~4GiB of MemAvailable beside the
-        # conversation cache. 56 is the arena UD-IQ4_XS holds (28796 2MiB
-        # pages): the same RAM footprint, the hottest experts in RAM and the
-        # other ~16GiB read from the GGUF through the file cache.
-        "--resident-budget-gib" = "56"
+        # conversation cache. 56 (the arena UD-IQ4_XS holds) kept the hottest
+        # experts in RAM but only 2400 of the 3381 expert slots a 32K prompt
+        # chunk borrows, so prompts of 50K+ tokens read the other 981 from the
+        # SSD on every chunk (engine 0.1.69's startup warning). At 59
+        # (2026-11-27) 3300 of 3383 stay in RAM (~3GiB per 1000 slots; the
+        # last 83 would need ~60); MemAvailable 20.3GB at start, 17.5GB with
+        # the 7GiB conversation cache in use.
+        "--resident-budget-gib" = "59"
       }
     }
   }
