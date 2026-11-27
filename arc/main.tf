@@ -22,6 +22,11 @@ locals {
     # local-path PVCs: those live on homelab's SATA SSD with the rest of k3s,
     # which smelt's tests kept 95-100% busy. This path is on the node's root
     # disk, and every runner needs its own: two dockerds can't share one.
+    # Except on homelab, whose 250G root couldn't hold them: there both paths
+    # are bind mounts of /var/lib/arc-runner/smelt{,-browser}, an ext4 zvol
+    # (storage/arc-runner, sync=disabled) on the storage pool, set up by hand
+    # in /etc/fstab, and k3s.service.d/arc-runner-storage.conf makes k3s wait
+    # for them so a hostPath never lands on / (2026-11-27).
     #
     # A runner may land on any of `nodes`; each keeps its own copy of the
     # cache at the same path, so a run builds on whatever that node's last
