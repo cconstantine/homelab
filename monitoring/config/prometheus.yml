@@ -13,8 +13,13 @@ alerting:
           # - alertmanager:9093
 
 # Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+# rules.d/ is written at runtime by the rules-sidecar (monitoring/prometheus.tf,
+# SME-903): ConfigMaps labelled prometheus_rule=1 in smelt-park, one file per
+# data key. The glob is relative to this file's directory and an empty match
+# loads nothing extra (v3.8 rules.ParseFiles tolerates zero matches).
 rule_files:
   - "rules.yml"
+  - "rules.d/*.yml"
   # - "second_rules.yml"
 
 # A scrape configuration containing exactly one endpoint to scrape:
