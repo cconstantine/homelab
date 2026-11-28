@@ -1,0 +1,18 @@
+# Alertmanager routing (SME-903).
+#
+# The only receiver is `blackhole`, deliberately: the user deferred human
+# notification on 2026-11-28 (conversation 2294641524, SME-903) -- "Don't
+# worry about how it reaches me right now". Nothing is dropped by accident:
+# alerts fire, group, and land in Alertmanager's store where On-call reads
+# them in-cluster (/api/v2/alerts, and silences at /api/v2/silences). Wiring
+# a real receiver is a later ticket, not an edit this file pre-empts.
+route:
+  receiver: blackhole
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  # Matches every alert and sends it nowhere. Holds no credential, so this
+  # adds no secret to the apply.
+  - name: blackhole

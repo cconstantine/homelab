@@ -10,7 +10,10 @@ alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          # - alertmanager:9093
+          # The alertmanager Deployment in this namespace (alertmanager.tf,
+          # SME-903). No ingress on the Service, so this FQDN is how in-cluster
+          # readers reach it.
+          - alertmanager.monitoring.svc.cluster.local:9093
 
 # Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
 # rules.d/ is written at runtime by the rules-sidecar (monitoring/prometheus.tf,
