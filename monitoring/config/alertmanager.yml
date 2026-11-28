@@ -8,6 +8,9 @@
 # a real receiver is a later ticket, not an edit this file pre-empts.
 route:
   receiver: blackhole
+  # An omitted group_by collapses every routed alert into ONE group on
+  # v0.35.1 (SME-903 round-1 review); group per alert instead.
+  group_by: ["alertname"]
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 4h
