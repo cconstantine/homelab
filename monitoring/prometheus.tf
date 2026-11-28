@@ -215,7 +215,7 @@ resource "kubernetes_stateful_set" "prometheus" {
         # keeps the fresh-pod contract explicit.
         init_container {
           name              = "clear-rules-d"
-          image             = "busybox:latest"
+          image             = "busybox:1.37.0"
           image_pull_policy = "IfNotPresent"
           command           = ["sh", "-c", "rm -rf /etc/prometheus/rules.d/*"]
 

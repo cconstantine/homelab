@@ -77,7 +77,7 @@ resource "kubernetes_deployment" "alertmanager" {
         # (uid 65534). Same shape as prometheus.tf's init-chown-data.
         init_container {
           name              = "init-chown-data"
-          image             = "busybox:latest"
+          image             = "busybox:1.37.0"
           image_pull_policy = "IfNotPresent"
           command           = ["chown", "-R", "65534:65534", "/alertmanager"]
 
