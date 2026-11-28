@@ -111,7 +111,7 @@ resource "kubernetes_deployment" "alertmanager" {
 
           readiness_probe {
             http_get {
-              path = "/-.healthy"
+              path = "/-/healthy"
               port = 9093
             }
             initial_delay_seconds = 10
@@ -119,7 +119,7 @@ resource "kubernetes_deployment" "alertmanager" {
           }
           liveness_probe {
             http_get {
-              path = "/-.healthy"
+              path = "/-/healthy"
               port = 9093
             }
             initial_delay_seconds = 10

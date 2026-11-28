@@ -255,7 +255,7 @@ resource "kubernetes_stateful_set" "prometheus" {
             "--web.enable-admin-api",
             # /-/reload answers 403 without this, and the rules-sidecar below
             # POSTs it on every rule change (SME-903). It also serves
-            # /-.quit on :9090 -- same trust boundary as --web.enable-admin-api
+            # /-/quit on :9090 -- same trust boundary as --web.enable-admin-api
             # above, LAN-only; the endpoint hardening is SME-922, not here.
             "--web.enable-lifecycle",
             "--enable-feature=promql-experimental-functions"
