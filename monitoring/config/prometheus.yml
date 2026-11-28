@@ -40,6 +40,26 @@ scrape_configs:
     static_configs:
       - targets: ['smokeping:9374']
 
+  # Blackbox probe of smelt (SME-903). blackbox-exporter already runs here but
+  # nothing probed through it. Hairpins via 192.168.8.130 (wildcard DNS ->
+  # Traefik), so probe_success covers DNS -> Traefik -> smelt ingress, not
+  # internet transit. http_2xx is a standard module in the exporter image's
+  # built-in config. URL is smelt.tf's `domain`, hardcoded like the other
+  # static targets in this file.
+  - job_name: 'smelt-blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets: ['https://smelt.constantlee.us/']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - target_label: __address__
+        replacement: blackbox-exporter.monitoring.svc.cluster.local:9115
+      - source_labels: [__param_target]
+        target_label: instance
+
   # strata-ryzen (ai/strata.tf): its /metrics wants the API key, which the
   # annotation-driven kubernetes-pods job can't send. Same target labels as
   # that job (name, kubernetes_namespace, kubernetes_pod_name).
