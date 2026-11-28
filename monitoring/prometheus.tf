@@ -252,11 +252,15 @@ resource "kubernetes_stateful_set" "prometheus" {
             "--storage.tsdb.path=/prometheus",
             "--web.console.libraries=/usr/share/prometheus/console_libraries",
             "--web.console.templates=/usr/share/prometheus/consoles",
-            "--web.enable-admin-api",
-            # /-/reload answers 403 without this, and the rules-sidecar below
-            # POSTs it on every rule change (SME-903). It also serves
-            # /-/quit on :9090 -- same trust boundary as --web.enable-admin-api
-            # above, LAN-only; the endpoint hardening is SME-922, not here.
+            # No --web.enable-admin-api (SME-922): nothing called
+            # /api/v1/admin/* in 365 days of prometheus_http_requests_total,
+            # so delete_series/snapshot/clean_tombstones stay off for
+            # everyone, in-cluster included.
+            #
+            # /-/reload answers 403 without --web.enable-lifecycle, and the
+            # rules-sidecar below POSTs it on every rule change (SME-903),
+            # over localhost -- never through the ingress. The flag also
+            # serves /-/quit on :9090.
             "--web.enable-lifecycle",
             "--enable-feature=promql-experimental-functions"
           ]
