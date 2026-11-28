@@ -10,11 +10,19 @@ alerting:
   alertmanagers:
     - static_configs:
         - targets:
-          # - alertmanager:9093
+          # The alertmanager Deployment in this namespace (alertmanager.tf,
+          # SME-903). No ingress on the Service, so this FQDN is how in-cluster
+          # readers reach it.
+          - alertmanager.monitoring.svc.cluster.local:9093
 
 # Load rules once and periodically evaluate them according to the global 'evaluation_interval'.
+# rules.d/ is written at runtime by the rules-sidecar (monitoring/prometheus.tf,
+# SME-903): ConfigMaps labelled prometheus_rule=1 in smelt-park, one file per
+# data key. The glob is relative to this file's directory and an empty match
+# loads nothing extra (v3.8 rules.ParseFiles tolerates zero matches).
 rule_files:
   - "rules.yml"
+  - "rules.d/*.yml"
   # - "second_rules.yml"
 
 # A scrape configuration containing exactly one endpoint to scrape:
@@ -31,6 +39,26 @@ scrape_configs:
     metrics_path: '/metrics'
     static_configs:
       - targets: ['smokeping:9374']
+
+  # Blackbox probe of smelt (SME-903). blackbox-exporter already runs here but
+  # nothing probed through it. Hairpins via 192.168.8.130 (wildcard DNS ->
+  # Traefik), so probe_success covers DNS -> Traefik -> smelt ingress, not
+  # internet transit. http_2xx is a standard module in the exporter image's
+  # built-in config. URL is smelt.tf's `domain`, hardcoded like the other
+  # static targets in this file.
+  - job_name: 'smelt-blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets: ['https://smelt.constantlee.us/']
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - target_label: __address__
+        replacement: blackbox-exporter.monitoring.svc.cluster.local:9115
+      - source_labels: [__param_target]
+        target_label: instance
 
   # strata-ryzen (ai/strata.tf): its /metrics wants the API key, which the
   # annotation-driven kubernetes-pods job can't send. Same target labels as
