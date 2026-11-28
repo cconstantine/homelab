@@ -208,11 +208,16 @@ resource "kubernetes_stateful_set" "prometheus" {
           }
         }
         # The rules-sidecar's initial LIST re-sync replaces everything here
-        # on a fresh pod, so a pod can never restart onto a stale or bad rule
+        # on a fresh pod, so a pod can never restart onto a *stale* rule
         # file. Prometheus v3.8 parses rule files at startup and exits 2 on an
         # unparseable one, and the emptyDir survives a *container* restart --
         # clearing runs only on pod (re)creation, where it costs nothing and
-        # keeps the fresh-pod contract explicit.
+        # keeps the fresh-pod contract explicit. The contract covers stale
+        # files only: a live bad rule ConfigMap is re-written by that same
+        # initial LIST, and if the sync wins the startup-parse race the pod
+        # crash-loops on exit 2 until the ConfigMap itself is deleted or
+        # fixed -- recovery is the ConfigMap, not the pod; SME-904's promtool
+        # CI is the mitigation.
         init_container {
           name              = "clear-rules-d"
           image             = "busybox:1.37.0"
