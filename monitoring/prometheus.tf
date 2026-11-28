@@ -252,11 +252,17 @@ resource "kubernetes_stateful_set" "prometheus" {
             "--storage.tsdb.path=/prometheus",
             "--web.console.libraries=/usr/share/prometheus/console_libraries",
             "--web.console.templates=/usr/share/prometheus/consoles",
-            "--web.enable-admin-api",
-            # /-/reload answers 403 without this, and the rules-sidecar below
-            # POSTs it on every rule change (SME-903). It also serves
-            # /-/quit on :9090 -- same trust boundary as --web.enable-admin-api
-            # above, LAN-only; the endpoint hardening is SME-922, not here.
+            # No --web.enable-admin-api (SME-922): nothing called
+            # /api/v1/admin/* in 365 days of prometheus_http_requests_total,
+            # so delete_series/snapshot/clean_tombstones stay off for
+            # everyone, in-cluster included.
+            #
+            # /-/reload answers 403 without --web.enable-lifecycle, and the
+            # rules-sidecar below POSTs it on every rule change (SME-903),
+            # over localhost -- never through the ingress. The flag also
+            # serves /-/quit on :9090; the ingress puts /-/, /api/v1/admin
+            # and /api/v1/write behind BasicAuth (prometheus_admin_ingress*
+            # below, SME-922).
             "--web.enable-lifecycle",
             "--enable-feature=promql-experimental-functions"
           ]
@@ -444,6 +450,129 @@ resource "kubernetes_ingress_v1" "prometheus_ingress_tls" {
               name = kubernetes_service.prometheus.metadata.0.name
               port {
                 number = 9090
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+# SME-922: /-/ (quit, reload, healthy, ready), /api/v1/admin and
+# /api/v1/write need a password through either host. Everything else --
+# the UI and the read API every seat and On-call script uses -- stays on the
+# open catch-all ingresses above. The rules-sidecar reloads over localhost
+# and never enters Traefik, and Grafana reads the in-cluster Service, so
+# neither needs the credential.
+#
+# Traefik makes one router per Ingress path (Host && PathPrefix); priority
+# 100 puts these ahead of the host-only catch-alls. If the Middleware or its
+# Secret goes missing, Traefik drops these routers and the paths fall back
+# to the catch-all, open again (fail-open) until a re-apply -- the admin API
+# still answers 403 at the origin, its flag being off.
+resource "kubernetes_secret" "prometheus_admin_auth" {
+  metadata {
+    name      = "prometheus-admin-auth"
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
+  }
+
+  data = {
+    users = var.prometheus_admin_basic_auth
+  }
+}
+
+# A Traefik Middleware (there is no BasicAuth kind). An Ingress names it
+# "<namespace>-<name>@kubernetescrd", like cert-manager-redirect-https.
+resource "kubectl_manifest" "prometheus_admin_auth_middleware" {
+  depends_on = [kubernetes_secret.prometheus_admin_auth]
+
+  yaml_body = yamlencode({
+    apiVersion = "traefik.io/v1alpha1"
+    kind       = "Middleware"
+    metadata = {
+      name      = "prometheus-admin-auth"
+      namespace = kubernetes_namespace.monitoring.metadata.0.name
+    }
+    spec = {
+      basicAuth = {
+        secret = kubernetes_secret.prometheus_admin_auth.metadata.0.name
+        realm  = "prometheus"
+      }
+    }
+  })
+}
+
+locals {
+  prometheus_admin_paths      = ["/-/", "/api/v1/admin", "/api/v1/write"]
+  prometheus_admin_middleware = "${kubernetes_namespace.monitoring.metadata.0.name}-prometheus-admin-auth@kubernetescrd"
+}
+
+resource "kubernetes_ingress_v1" "prometheus_admin_ingress" {
+  depends_on = [kubectl_manifest.prometheus_admin_auth_middleware]
+
+  metadata {
+    name      = "prometheus-admin-ingress"
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.middlewares" = local.prometheus_admin_middleware
+      "traefik.ingress.kubernetes.io/router.priority"    = "100"
+    }
+  }
+
+  spec {
+    rule {
+      host = "prometheus.${var.domain}"
+      http {
+        dynamic "path" {
+          for_each = local.prometheus_admin_paths
+          content {
+            path      = path.value
+            path_type = "Prefix"
+            backend {
+              service {
+                name = kubernetes_service.prometheus.metadata.0.name
+                port {
+                  number = 9090
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+# Same middlewares as prometheus_ingress_tls, then auth: plaintext still
+# 308-redirects to https before any credential is asked for.
+resource "kubernetes_ingress_v1" "prometheus_admin_ingress_tls" {
+  depends_on = [kubectl_manifest.prometheus_admin_auth_middleware]
+
+  metadata {
+    name      = "prometheus-admin-ingress-tls"
+    namespace = kubernetes_namespace.monitoring.metadata.0.name
+    annotations = {
+      "traefik.ingress.kubernetes.io/router.middlewares" = "cert-manager-redirect-https@kubernetescrd,cert-manager-hsts-headers@kubernetescrd,${local.prometheus_admin_middleware}"
+      "traefik.ingress.kubernetes.io/router.priority"    = "100"
+    }
+  }
+
+  spec {
+    rule {
+      host = "prometheus.${var.tls_domain}"
+      http {
+        dynamic "path" {
+          for_each = local.prometheus_admin_paths
+          content {
+            path      = path.value
+            path_type = "Prefix"
+            backend {
+              service {
+                name = kubernetes_service.prometheus.metadata.0.name
+                port {
+                  number = 9090
+                }
               }
             }
           }
